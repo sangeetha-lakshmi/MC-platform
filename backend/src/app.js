@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const pool = require("./config/db"); // correct path check cheyyuka
 
 const authRoutes = require("./routes/authRoutes");
 const adminRestaurantRoutes = require("./routes/adminRestaurantRoutes");
@@ -21,6 +22,22 @@ app.use("/api/restaurants/auth", restaurantAuthRoutes);
 // Test route
 app.get("/", (req, res) => {
   res.send("Backend Running ✅");
+});
+// DB Health Check
+app.get("/health/db", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({
+      status: "OK",
+      db: "Connected",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      status: "ERROR",
+      db: "Not connected",
+    });
+  }
 });
 
 module.exports = app;
