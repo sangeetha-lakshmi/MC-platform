@@ -1,43 +1,28 @@
 const express = require("express");
 const cors = require("cors");
-const pool = require("./config/db"); // correct path check cheyyuka
 
-const authRoutes = require("./routes/authRoutes");
-const adminRestaurantRoutes = require("./routes/adminRestaurantRoutes");
-const restaurantAuthRoutes = require("./routes/restaurantAuthRoutes");
-const adminAuthRoutes = require("./routes/adminAuthRoutes");
+const authRoutes = require("./modules/auth/auth.routes");
+const adminRoutes = require("./modules/admin/admin.routes");
+const vendorRoutes = require("./modules/vendor/vendor.routes");
+
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRestaurantRoutes);
-app.use("/api/admin/auth", adminAuthRoutes);
-// ✅ Restaurant Register/Login Routes
-app.use("/api/restaurants/auth", restaurantAuthRoutes);
-
-// Test route
-app.get("/", (req, res) => {
-  res.send("Backend Running ✅");
+// health check
+app.get("/api/health", (req, res) => {
+  res.send("MC Platform Backend is running 🚀");
 });
-// DB Health Check
-app.get("/health/db", async (req, res) => {
-  try {
-    await pool.query("SELECT 1");
-    res.json({
-      status: "OK",
-      db: "Connected",
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      status: "ERROR",
-      db: "Not connected",
-    });
-  }
+
+// API routes
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/vendor", vendorRoutes);
+
+// fallback (optional but helpful)
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found ❌" });
 });
 
 module.exports = app;
