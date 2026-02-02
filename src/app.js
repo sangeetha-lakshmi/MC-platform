@@ -24,6 +24,9 @@ app.use("/api/vendor", vendorRoutes); // register vendor
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });
+app.get("/", (req, res) => {
+  res.send("Backend Working in Vercel 🚀");
+});
 
 module.exports = app;
 
