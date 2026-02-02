@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "hello.",
-  "main": "index.js",
+  "main": "src/server.js",
   "dependencies": {
     "accepts": "^2.0.0",
     "anymatch": "^3.1.3",
