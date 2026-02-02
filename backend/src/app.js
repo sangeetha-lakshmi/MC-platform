@@ -2,6 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const pool = require("./config/db"); // correct path check cheyyuka
 
+
+
+const adminShopRoutes = require("./routes/adminShopRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminRestaurantRoutes = require("./routes/adminRestaurantRoutes");
 const restaurantAuthRoutes = require("./routes/restaurantAuthRoutes");
