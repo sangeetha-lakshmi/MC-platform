@@ -1,8 +1,9 @@
 {
-  "name": "backend",
+  "name": "mc-platform",
   "version": "1.0.0",
   "description": "hello.",
   "main": "api/index.js",
+  "private": true,
   "dependencies": {
     "accepts": "^2.0.0",
     "anymatch": "^3.1.3",
