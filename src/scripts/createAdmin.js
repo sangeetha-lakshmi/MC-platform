@@ -13,10 +13,10 @@ async function createAdmin() {
       [email, hash]
     );
 
-    console.log("✅ Admin created successfully!");
+    console.log(" Admin created successfully!");
     process.exit();
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error(" Error:", err.message);
     process.exit(1);
   }
 }

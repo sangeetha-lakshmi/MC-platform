@@ -12,7 +12,7 @@ app.use(express.json());
 
 // health check
 app.get("/api/health", (req, res) => {
-  res.send("MC Platform Backend is running 🚀");
+  res.send("MC Platform Backend is running ");
 });
 
 // routes
@@ -25,7 +25,7 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });
 app.get("/", (req, res) => {
-  res.send("Backend Working in Vercel 🚀");
+  res.send("Backend Working in Vercel ");
 });
 
 module.exports = app;

@@ -32,7 +32,7 @@ const getPendingVendors = async (req, res) => {
 const approveVendor = async (req, res) => {
   try {
     await adminService.approveVendor(req.params.id);
-    res.json({ message: "Vendor approved ✅" });
+    res.json({ message: "Vendor approved " });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
