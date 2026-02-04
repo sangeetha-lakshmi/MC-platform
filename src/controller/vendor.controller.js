@@ -86,13 +86,14 @@ exports.loginVendor = async (req, res) => {
       return res.status(401).json({ error: "Invalid password" });
     }
 
+    // 🔐 JWT WITHOUT role (frontend-friendly)
     const token = jwt.sign(
-      { id: vendor.id, role: "vendor" },
+      { id: vendor.id },   // 👈 role removed
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    res.json({
+    res.status(200).json({
       message: "Vendor login successful",
       token
     });
