@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const adminController = require("./admin.controller");
+const adminController = require("../controller/admin.controller");
 
 // ✅ Check what is imported
 console.log("Admin Controller Loaded:", adminController);

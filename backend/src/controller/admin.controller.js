@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const adminService = require("./admin.service");
+const adminService = require("../modules/admin/admin.service");
 
 // Admin Login
 const adminLogin = async (req, res) => {

@@ -1,9 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 
-const authRoutes = require("./modules/auth/auth.routes");
-const adminRoutes = require("./modules/admin/admin.routes");
-const vendorRoutes = require("./modules/vendor/vendor.routes");
+const authRoutes = require("./routes/auth.routes");
+const adminRoutes = require("./routes/admin.routes");
+const vendorRoutes = require("./routes/vendor.routes");
 
 const app = express();
 
@@ -15,12 +15,12 @@ app.get("/api/health", (req, res) => {
   res.send("MC Platform Backend is running 🚀");
 });
 
-// API routes
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/vendor", vendorRoutes);
+// routes
+app.use("/api/auth", authRoutes);     // 🔑 single login here
+app.use("/api/admin", adminRoutes);   // approval APIs
+app.use("/api/vendor", vendorRoutes); // register vendor
 
-// fallback (optional but helpful)
+// fallback 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });

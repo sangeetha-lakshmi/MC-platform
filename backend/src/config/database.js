@@ -1,12 +1,13 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+console.log("🔍 DATABASE_URL =", process.env.DATABASE_URL);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-/* ✅ Debug: Check connected database */
 pool.query("SELECT current_database()", (err, res) => {
   if (err) {
     console.log("❌ DB Debug Error:", err.message);
