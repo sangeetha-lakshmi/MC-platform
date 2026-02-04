@@ -8,7 +8,20 @@ const productRoutes = require("./routes/product.routes");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // Vite frontend
+      "http://localhost:3000", // React
+      "https://mc-platform-gpsuzkr-sangeetha-lakshmis-projects.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
+  })
+);
+
+app.options("*", cors());
 app.use(express.json());
 
 // ✅ Root route (useful for Vercel / browser check)
