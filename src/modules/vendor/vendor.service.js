@@ -60,3 +60,4 @@ exports.findVendorByEmail = async (email) => {
 
   return result.rows[0];
 };
+/*restoring*/
