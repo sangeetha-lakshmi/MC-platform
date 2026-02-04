@@ -58,7 +58,7 @@ exports.registerVendor = async (req, res) => {
   }
 };
 
-/* ✅ Vendor Login (optional – single login preferred) */
+/* ✅ Vendor Login */
 exports.loginVendor = async (req, res) => {
   try {
     const { email, password } = req.body;

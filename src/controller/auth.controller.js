@@ -17,6 +17,6 @@ exports.login = async (req, res) => {
       token
     });
   } catch (err) {
-    res.status(401).json({ error: err });
+    res.status(401).json({ error: err.message });
   }
 };

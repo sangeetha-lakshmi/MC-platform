@@ -14,11 +14,11 @@ const adminLogin = async (req, res) => {
 
     res.json({ token });
   } catch (err) {
-    res.status(401).json({ error: err });
+    res.status(401).json({ error: err.message });
   }
 };
 
-// Pending Vendors
+// Get Pending Vendors
 const getPendingVendors = async (req, res) => {
   try {
     const vendors = await adminService.getPendingVendors();
