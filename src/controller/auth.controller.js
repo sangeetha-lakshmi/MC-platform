@@ -12,11 +12,11 @@ exports.login = async (req, res) => {
     );
 
     res.json({
-      message: "Login successful ",
+      message: "Login successful ✅",
       role: user.role,
       token
     });
   } catch (err) {
-    res.status(401).json({ error: err });
+    res.status(401).json({ error: err.message });
   }
 };

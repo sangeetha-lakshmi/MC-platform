@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const db = require("../config/database.js"); // <-- FIX THIS
+const db = require("../config/database.js");
 
 async function createAdmin() {
   try {
@@ -13,10 +13,10 @@ async function createAdmin() {
       [email, hash]
     );
 
-    console.log(" Admin created successfully!");
+    console.log("✅ Admin created successfully!");
     process.exit();
   } catch (err) {
-    console.error(" Error:", err.message);
+    console.error("❌ Error:", err.message);
     process.exit(1);
   }
 }

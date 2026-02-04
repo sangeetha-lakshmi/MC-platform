@@ -51,14 +51,14 @@ exports.registerVendor = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Vendor registered successfully  Waiting for admin approval"
+      message: "Vendor registered successfully ⏳ Waiting for admin approval"
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ✅ Vendor Login (optional – single login preferred) */
+/* ✅ Vendor Login */
 exports.loginVendor = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -77,7 +77,7 @@ exports.loginVendor = async (req, res) => {
 
     if (!vendor.is_approved) {
       return res.status(403).json({
-        error: "Admin approval pending "
+        error: "Admin approval pending ⏳"
       });
     }
 
@@ -93,7 +93,7 @@ exports.loginVendor = async (req, res) => {
     );
 
     res.json({
-      message: "Vendor login successful ",
+      message: "Vendor login successful ✅",
       token
     });
   } catch (err) {

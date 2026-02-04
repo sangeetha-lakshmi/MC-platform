@@ -33,7 +33,7 @@ exports.login = async ({ email, password }) => {
   const vendor = vendorResult.rows[0];
 
   if (!vendor.is_approved) {
-    throw "Admin approval pending ";
+    throw "Admin approval pending ⏳";
   }
 
   const match = await comparePassword(password, vendor.password_hash);
