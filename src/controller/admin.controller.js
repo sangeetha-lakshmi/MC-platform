@@ -43,3 +43,4 @@ module.exports = {
   getPendingVendors,
   approveVendor,
 };
+/* everything correct */
