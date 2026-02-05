@@ -10,6 +10,6 @@ router.get("/:id", auth, controller.getOne);
 router.post("/", auth, controller.create);
 router.put("/:id", auth, controller.update);
 router.delete("/:id", auth, controller.remove);
-
+router.patch("/:id/live", controller.updateLiveStatus);
 module.exports = router;
 //trying to commit
