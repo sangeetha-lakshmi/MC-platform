@@ -194,3 +194,60 @@ exports.updateVendorProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// controllers/vendor.controller.js
+
+
+exports.toggleShopStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 🔒 Check if this user is a vendor
+    const vendorCheck = await pool.query(
+   "SELECT id, is_online FROM vendors WHERE id = $1",
+  [userId]
+);
+    if (vendorCheck.rowCount === 0) {
+      return res.status(403).json({ message: "Vendor not found" });
+    }
+
+    const { is_online } = req.body;
+
+    if (typeof is_online !== "boolean") {
+      return res.status(400).json({ message: "Invalid toggle value" });
+    }
+
+    await pool.query(
+      "UPDATE vendors SET is_online = $1 WHERE id = $2",
+      [is_online, userId]
+    );
+
+    res.json({
+      success: true,
+      message: is_online
+        ? "You are back online"
+        : "You are now offline. No new orders will come."
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//VENDOR DASHBOARD FETCH API
+exports.getVendorProfile = async (req, res) => {
+  const vendorId = req.user.id;
+
+  const result = await pool.query(
+    "SELECT name, is_online FROM vendors WHERE id = $1",
+    [vendorId]
+  );
+
+  const vendor = result.rows[0];
+
+  res.json({
+    ...vendor,
+    message: vendor.is_online
+      ? "You are back online"
+      : "You are now offline. No new orders will come."
+  });
+};
