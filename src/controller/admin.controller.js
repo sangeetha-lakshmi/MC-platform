@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const adminService = require("../modules/admin/admin.service");
 
-// Admin Login
+/* ✅ Admin Login */
 const adminLogin = async (req, res) => {
   try {
     const admin = await adminService.loginAdmin(req.body);
@@ -18,7 +18,7 @@ const adminLogin = async (req, res) => {
   }
 };
 
-// Get Pending Vendors
+/* ✅ Get Pending Vendors */
 const getPendingVendors = async (req, res) => {
   try {
     const vendors = await adminService.getPendingVendors();
@@ -28,13 +28,44 @@ const getPendingVendors = async (req, res) => {
   }
 };
 
-// Approve Vendor
+/* ✅ Approve Vendor */
 const approveVendor = async (req, res) => {
   try {
-    await adminService.approveVendor(req.params.id);
-    res.json({ message: "Vendor approved " });
+    const { id } = req.params;
+    await adminService.approveVendor(id);
+    res.json({ message: "Vendor approved ✅" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+/* ❌ Decline Vendor */
+const declineVendor = async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    await adminService.declineVendor(vendorId);
+
+    res.json({
+      message: "Vendor declined successfully ❌"
+    });
+  } catch (error) {
+    console.error("Decline Vendor Error:", error.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+/* ✅ Get Approved Vendors */
+const getApprovedVendors = async (req, res) => {
+  try {
+    const vendors = await adminService.getApprovedVendors();
+
+    res.json({
+      success: true,
+      data: vendors
+    });
+  } catch (error) {
+    console.error("Get Approved Vendors Error:", error.message);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -42,5 +73,6 @@ module.exports = {
   adminLogin,
   getPendingVendors,
   approveVendor,
+  declineVendor,
+  getApprovedVendors
 };
-/* everything correct */

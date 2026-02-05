@@ -33,4 +33,28 @@ exports.approveVendor = async (vendorId) => {
   );
 };
 //commiting
-//test_commit111
+/* ❌ Decline vendor */
+exports.declineVendor = async (vendorId) => {
+  return pool.query(
+    "UPDATE vendors SET is_approved = false WHERE id = $1",
+    [vendorId]
+  );
+};
+
+/* ✅ Get approved vendors */
+exports.getApprovedVendors = async () => {
+  const result = await pool.query(
+    `SELECT
+      id,
+      shop_name,
+      owner_name,
+      email,
+      phone,
+      business_type,
+      created_at
+     FROM vendors
+     WHERE is_approved = true`
+  );
+
+  return result.rows;
+};
