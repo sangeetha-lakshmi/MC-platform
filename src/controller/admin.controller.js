@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const adminService = require("../modules/admin/admin.service");
 
-// Admin Login
+/* ✅ Admin Login */
 const adminLogin = async (req, res) => {
   try {
     const admin = await adminService.loginAdmin(req.body);
@@ -18,7 +18,7 @@ const adminLogin = async (req, res) => {
   }
 };
 
-// Get Pending Vendors
+/* ✅ Get Pending Vendors */
 const getPendingVendors = async (req, res) => {
   try {
     const vendors = await adminService.getPendingVendors();
@@ -28,7 +28,7 @@ const getPendingVendors = async (req, res) => {
   }
 };
 
-// Approve Vendor
+/* ✅ Approve Vendor */
 const approveVendor = async (req, res) => {
   try {
     await adminService.approveVendor(req.params.id);
@@ -38,10 +38,10 @@ const approveVendor = async (req, res) => {
   }
 };
 
-// Change Admin Password
+/* ✅ Change Admin Password */
 const changeAdminPassword = async (req, res) => {
   try {
-    const adminId = req.user.id; // ✅ FIXED
+    const adminId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {

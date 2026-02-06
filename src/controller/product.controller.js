@@ -18,7 +18,7 @@ exports.getProductTemplate = (req, res) => {
 
 // get all products of logged-in vendor
 exports.getAll = async (req, res) => {
-  const products = await service.getAllProducts(req.user.id); // vendor_id
+  const products = await service.getAllProducts(req.user.id);
   res.json(products);
 };
 

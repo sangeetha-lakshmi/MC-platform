@@ -92,7 +92,16 @@ exports.updateProduct = async (id, data) => {
 
   return rows[0];
 };
-
+exports.updateLiveStatus = async (id, isLive) => {
+  const { rows } = await db.query(
+    `UPDATE products
+     SET is_live = $1, updated_at = NOW()
+     WHERE id = $2
+     RETURNING *`,
+    [isLive, id]
+  );
+  return rows[0];
+};
 // delete product
 exports.deleteProduct = async (id) => {
   await db.query("DELETE FROM products WHERE id = $1", [id]);
