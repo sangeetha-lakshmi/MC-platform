@@ -4,20 +4,41 @@ const router = express.Router();
 const adminController = require("../controller/admin.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-// check import
-console.log("Admin Controller Loaded:", adminController);
-
-// Routes
+// ✅ Admin login (public)
 router.post("/login", adminController.adminLogin);
 
-router.get("/pending", adminController.getPendingVendors);
+// 🔐 Protected routes
+router.get(
+  "/pending",
+  authMiddleware,
+  adminController.getPendingVendors
+);
 
-router.put("/approve/:id", adminController.approveVendor);
+router.put(
+  "/approve/:id",
+  authMiddleware,
+  adminController.approveVendor
+);
+
+router.put(
+  "/vendors/:vendorId/decline",
+  authMiddleware,
+  adminController.declineVendor
+);
+
+router.get(
+  "/vendors/approved",
+  authMiddleware,
+  adminController.getApprovedVendors
+);
 
 router.put(
   "/change-password",
   authMiddleware,
   adminController.changeAdminPassword
 );
+
+// debug
+console.log("Admin Controller Loaded:", Object.keys(adminController));
 
 module.exports = router;

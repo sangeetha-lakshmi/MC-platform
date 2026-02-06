@@ -66,9 +66,25 @@ const changePassword = async (adminId, currentPassword, newPassword) => {
   );
 };
 
+/* ✅ Get Approved Vendors */
+const getApprovedVendors = async () => {
+  try {
+    const result = await db.query(
+      "SELECT * FROM vendors WHERE is_approved = true"
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("DB ERROR (getApprovedVendors):", error.message);
+    throw new Error("Failed to fetch approved vendors");
+  }
+};
+
+
+
 module.exports = {
   loginAdmin,
   getPendingVendors,
   approveVendor,
-  changePassword
+  changePassword,
+  getApprovedVendors
 };

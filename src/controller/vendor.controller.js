@@ -88,7 +88,7 @@ exports.loginVendor = async (req, res) => {
 
     // 🔐 JWT WITHOUT role (frontend-friendly)
     const token = jwt.sign(
-      { id: vendor.id },   // 👈 role removed
+      { id: vendor.id, role: "vendor" },   // 👈 role removed
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
