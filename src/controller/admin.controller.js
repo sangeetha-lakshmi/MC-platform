@@ -7,7 +7,7 @@ const adminLogin = async (req, res) => {
     const admin = await adminService.loginAdmin(req.body);
 
     const token = jwt.sign(
-      { id: admin.id, role: "admin" },
+      { id: admin.id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );

@@ -16,13 +16,11 @@ router.put("/approve/:id", adminController.approveVendor);
 router.put(
   "/vendors/:vendorId/decline",
   authMiddleware,
-  roleMiddleware("admin"),
   adminController.declineVendor
 );
 router.get(
   "/vendors/approved",
   authMiddleware,
-  roleMiddleware("admin"),
   adminController.getApprovedVendors
 );
 console.log("Admin Controller Loaded:", Object.keys(adminController));
