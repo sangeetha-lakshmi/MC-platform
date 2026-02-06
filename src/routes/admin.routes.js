@@ -20,7 +20,6 @@ router.put(
 );
 router.get(
   "/vendors/approved",
-  authMiddleware, roleMiddleware("admin"),
   adminController.getApprovedVendors
 );
 console.log("Admin Controller Loaded:", Object.keys(adminController));
