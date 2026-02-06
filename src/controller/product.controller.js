@@ -1,4 +1,4 @@
-const service = require("../modules/product.service");
+const service = require("../modules/vendor/product.service");
 
 // default data for "Add Product" page
 exports.getProductTemplate = (req, res) => {
@@ -44,4 +44,22 @@ exports.update = async (req, res) => {
 exports.remove = async (req, res) => {
   await service.deleteProduct(req.params.id);
   res.json({ message: "Product deleted" });
+};
+
+// PATCH: toggle product live status
+exports.updateLiveStatus = async (req, res) => {
+  const { is_live } = req.body;
+
+  if (typeof is_live !== "boolean") {
+    return res.status(400).json({
+      message: "is_live must be true or false"
+    });
+  }
+
+  const product = await service.updateLiveStatus(
+    req.params.id,
+    is_live
+  );
+
+  res.json(product);
 };

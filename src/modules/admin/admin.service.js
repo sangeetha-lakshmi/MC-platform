@@ -1,36 +1,74 @@
-const pool = require("../../config/database");
-const { comparePassword } = require("../../utils/password.utils");
+const bcrypt = require("bcrypt");
+const db = require("../../config/database");
 
-exports.loginAdmin = async ({ email, password }) => {
-  const result = await pool.query(
-    "SELECT * FROM admin_users WHERE email=$1",
+/* ---------------- ADMIN LOGIN ---------------- */
+const loginAdmin = async ({ email, password }) => {
+  const result = await db.query(
+    "SELECT * FROM admin_users WHERE email = $1",
     [email]
   );
 
-  if (result.rowCount === 0) throw "Invalid admin";
+  if (result.rows.length === 0) {
+    throw new Error("Invalid email or password");
+  }
 
   const admin = result.rows[0];
 
-  const match = await comparePassword(password, admin.password_hash);
-  if (!match) throw "Invalid password";
+  const isMatch = await bcrypt.compare(password, admin.password_hash);
+  if (!isMatch) {
+    throw new Error("Invalid email or password");
+  }
 
   return admin;
 };
 
-/* ✅ Pending Vendors */
-exports.getPendingVendors = async () => {
-  const result = await pool.query(
-    "SELECT id, owner_name, email, business_type, created_at FROM vendors WHERE is_approved = false"
+/* ---------------- PENDING VENDORS ---------------- */
+const getPendingVendors = async () => {
+  const result = await db.query(
+    "SELECT * FROM vendors WHERE status = 'pending'"
   );
   return result.rows;
 };
 
-/* ✅ Approve Vendor */
-exports.approveVendor = async (vendorId) => {
-  return pool.query(
-    "UPDATE vendors SET is_approved=true WHERE id=$1",
+/* ---------------- APPROVE VENDOR ---------------- */
+const approveVendor = async (vendorId) => {
+  await db.query(
+    "UPDATE vendors SET status = 'approved' WHERE id = $1",
     [vendorId]
   );
 };
-//commiting
-//test_commit111
+
+/* ---------------- CHANGE PASSWORD ---------------- */
+const changePassword = async (adminId, currentPassword, newPassword) => {
+  const result = await db.query(
+    "SELECT password_hash FROM admin_users WHERE id = $1",
+    [adminId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Admin not found");
+  }
+
+  const isMatch = await bcrypt.compare(
+    currentPassword,
+    result.rows[0].password_hash
+  );
+
+  if (!isMatch) {
+    throw new Error("Current password incorrect");
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 10);
+
+  await db.query(
+    "UPDATE admin_users SET password_hash = $1 WHERE id = $2",
+    [newHash, adminId]
+  );
+};
+
+module.exports = {
+  loginAdmin,
+  getPendingVendors,
+  approveVendor,
+  changePassword
+};

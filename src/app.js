@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
+const orderRoutes = require("./routes/shopOrder.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const vendorRoutes = require("./routes/vendor.routes");
@@ -11,8 +12,8 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Vite frontend
-      "http://localhost:3000", // React
+      "http://localhost:5173",
+      "http://localhost:3000",
       "https://mc-platform-gpsuzkr-sangeetha-lakshmis-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -21,26 +22,27 @@ app.use(
   })
 );
 
-app.options("*", cors());
 app.use(express.json());
 
-// ✅ Root route (useful for Vercel / browser check)
+/* SHOP ORDERS */
+app.use("/api/shop", orderRoutes);
+
+/* HEALTH */
 app.get("/", (req, res) => {
   res.send("MC Platform Backend is running 🚀");
 });
 
-// ✅ Health check
 app.get("/api/health", (req, res) => {
   res.send("MC Platform Backend is healthy ✅");
 });
 
-// ✅ Routes
-app.use("/api/auth", authRoutes);        // login (admin/vendor)
-app.use("/api/admin", adminRoutes);      // admin actions
-app.use("/api/vendor", vendorRoutes);    // vendor profile, vendor actions
-app.use("/api/products", productRoutes); // product CRUD
+/* OTHER ROUTES */
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/vendor", vendorRoutes);
+app.use("/api/products", productRoutes);
 
-// ❌ Fallback (MUST be last)
+/* 404 */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });

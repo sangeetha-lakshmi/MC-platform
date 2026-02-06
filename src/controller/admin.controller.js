@@ -32,9 +32,31 @@ const getPendingVendors = async (req, res) => {
 const approveVendor = async (req, res) => {
   try {
     await adminService.approveVendor(req.params.id);
-    res.json({ message: "Vendor approved " });
+    res.json({ message: "Vendor approved" });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// Change Admin Password
+const changeAdminPassword = async (req, res) => {
+  try {
+    const adminId = req.user.id; // ✅ FIXED
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "All fields required" });
+    }
+
+    await adminService.changePassword(
+      adminId,
+      currentPassword,
+      newPassword
+    );
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -42,5 +64,5 @@ module.exports = {
   adminLogin,
   getPendingVendors,
   approveVendor,
+  changeAdminPassword,
 };
-/* everything correct */

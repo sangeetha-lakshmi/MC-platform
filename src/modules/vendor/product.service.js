@@ -1,6 +1,10 @@
-const db = require("../config/database");
+const db = require("../../config/database");
 
-// get all products for logged-in vendor
+// ===============================
+// VENDOR SIDE
+// ===============================
+
+// get all products for logged-in vendor (ALL products)
 exports.getAllProducts = async (vendorId) => {
   const { rows } = await db.query(
     "SELECT * FROM products WHERE vendor_id = $1 ORDER BY created_at DESC",
@@ -9,7 +13,7 @@ exports.getAllProducts = async (vendorId) => {
   return rows;
 };
 
-// get single product by id
+// get single product by id (vendor edit)
 exports.getProductById = async (id) => {
   const { rows } = await db.query(
     "SELECT * FROM products WHERE id = $1",
@@ -54,7 +58,7 @@ exports.createProduct = async (vendorId, data) => {
   return rows[0];
 };
 
-// update product
+// update product (vendor can turn live ON/OFF)
 exports.updateProduct = async (id, data) => {
   const { rows } = await db.query(
     `UPDATE products SET
@@ -93,3 +97,27 @@ exports.updateProduct = async (id, data) => {
 exports.deleteProduct = async (id) => {
   await db.query("DELETE FROM products WHERE id = $1", [id]);
 };
+
+
+// ===============================
+// CUSTOMER SIDE (NEW)
+// ===============================
+
+// get ONLY live products for customers
+exports.getProducts = async (req, res) => {
+  const products = await service.getLiveProductsForCustomer(); // ✅ CORRECT
+  res.json(products);
+};
+
+// toggle product live status (PATCH)
+exports.updateLiveStatus = async (id, isLive) => {
+  const { rows } = await db.query(
+    `UPDATE products
+     SET is_live = $1, updated_at = NOW()
+     WHERE id = $2
+     RETURNING *`,
+    [isLive, id]
+  );
+  return rows[0];
+};
+
