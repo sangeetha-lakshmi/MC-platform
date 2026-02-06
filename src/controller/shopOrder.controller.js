@@ -2,22 +2,20 @@ const db = require("../config/database");
 
 /* ================================
    GET ORDERS – SHOP DASHBOARD
+   (hide completed)
 ================================ */
 const getOrders = async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
-        o.id,
-        o.order_code,
-        o.customer_name,
-        o.total_amount,
-        o.status,
-        o.ready_at,
-        (o.ready_at IS NOT NULL AND o.ready_at <= NOW()) AS can_mark_ready,
-        o.created_at
-      FROM orders o
-      WHERE o.status != 'handed'
-      ORDER BY o.created_at ASC
+        id,
+        order_code,
+        customer_name,
+        total_amount,
+        status,
+        created_at
+      FROM orders
+      ORDER BY created_at ASC
     `);
 
     res.json(result.rows);
@@ -26,109 +24,103 @@ const getOrders = async (req, res) => {
   }
 };
 
+
 /* ================================
    ACCEPT ORDER
-   - prep time from PRODUCTS table
-   - status → preparing
+   → notification only
+   → DB unchanged
 ================================ */
 const acceptOrder = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 1️⃣ Get MAX preparing time from products via order_items
-    //    (CASE + SPACE safe JOIN)
-    const prepResult = await db.query(
-      `
-      SELECT MAX(p.preparing_minutes) AS prep_minutes
-      FROM order_items oi
-      JOIN products p
-        ON LOWER(TRIM(p.name)) = LOWER(TRIM(oi.item_name))
-      WHERE oi.order_id = $1
-      `,
+    // optional: check order exists
+    const check = await db.query(
+      "SELECT id FROM orders WHERE id = $1 AND status = 'pending'",
       [id]
     );
 
-    if (!prepResult.rows[0] || !prepResult.rows[0].prep_minutes) {
-      return res.status(400).json({
-        message: "No items found for this order"
-      });
-    }
-
-    const prepMinutes = prepResult.rows[0].prep_minutes;
-
-    // 2️⃣ Update order → preparing + ready_at
-    const updateResult = await db.query(
-      `
-      UPDATE orders
-      SET
-        status = 'preparing',
-        ready_at = NOW() + ($2 || ' minutes')::INTERVAL
-      WHERE id = $1 AND status = 'pending'
-      `,
-      [id, prepMinutes]
-    );
-
-    if (updateResult.rowCount === 0) {
+    if (check.rowCount === 0) {
       return res.status(400).json({
         message: "Order not in pending state"
       });
     }
 
     res.json({
-      message: `Order accepted, preparing for ${prepMinutes} minutes`
+      status: "preparing",
+      customer_message: "Your order is preparing 🍳"
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-
 /* ================================
-   READY BUTTON (manual)
+   READY
+   pending → ready
 ================================ */
 const markReady = async (req, res) => {
   const { id } = req.params;
 
-  const result = await db.query(
-    `
-    UPDATE orders
-    SET status = 'ready'
-    WHERE id = $1
-      AND status = 'preparing'
-      AND ready_at <= NOW()
-    `,
-    [id]
-  );
+  try {
+    const result = await db.query(
+      `
+      UPDATE orders
+      SET status = 'ready'
+      WHERE id = $1 AND status = 'pending'
+      RETURNING *
+      `,
+      [id]
+    );
 
-  if (result.rowCount === 0) {
-    return res.status(400).json({
-      message: "Order not ready yet or invalid state"
+    if (result.rowCount === 0) {
+      return res.status(400).json({
+        message: "Order already ready or completed"
+      });
+    }
+
+    res.json({
+      status: "ready",
+      customer_message: "Your order is ready ✅",
+      order: result.rows[0]
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ message: "Order marked as ready" });
 };
 
 /* ================================
-   HAND OVER
+   COMPLETED
+   ready → completed
 ================================ */
-const handOver = async (req, res) => {
+const completeOrder = async (req, res) => {
   const { id } = req.params;
 
-  const result = await db.query(
-    `
-    UPDATE orders
-    SET status = 'handed'
-    WHERE id = $1 AND status = 'ready'
-    `,
-    [id]
-  );
+  try {
+    const result = await db.query(
+      `
+      UPDATE orders
+      SET status = 'completed'
+      WHERE id = $1 AND status = 'ready'
+      RETURNING *
+      `,
+      [id]
+    );
 
-  if (result.rowCount === 0) {
-    return res.status(400).json({ message: "Order not in ready state" });
+    if (result.rowCount === 0) {
+      return res.status(400).json({
+        message: "Order not in ready state"
+      });
+    }
+
+    res.json({
+      status: "completed",
+      customer_message: "Order completed 🎉",
+      order: result.rows[0]
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ message: "Order handed over" });
 };
 
 /* ================================
@@ -138,5 +130,5 @@ module.exports = {
   getOrders,
   acceptOrder,
   markReady,
-  handOver
+  completeOrder
 };
