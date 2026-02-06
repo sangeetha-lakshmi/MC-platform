@@ -3,20 +3,22 @@ const jwt = require("jsonwebtoken");
 module.exports = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  // Check if header exists
+  // ❌ No Authorization header
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Authorization token missing" });
   }
 
-  // Extract token
+  // ✅ Extract token
   const token = authHeader.split(" ")[1];
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // ✅ Attach full decoded payload (admin or vendor)
-    req.user = decoded;
+    // ✅ Attach ONLY what backend needs
+    req.user = {
+      id: decoded.id,
+      role: decoded.role // internal use only (not sent to frontend)
+    };
 
     next();
   } catch (err) {

@@ -15,12 +15,12 @@ router.get("/pending", adminController.getPendingVendors);
 router.put("/approve/:id", adminController.approveVendor);
 router.put(
   "/vendors/:vendorId/decline",
-  authMiddleware,
+  authMiddleware,roleMiddleware("admin"),
   adminController.declineVendor
 );
 router.get(
   "/vendors/approved",
-  authMiddleware,
+  authMiddleware, roleMiddleware("admin"),
   adminController.getApprovedVendors
 );
 console.log("Admin Controller Loaded:", Object.keys(adminController));
