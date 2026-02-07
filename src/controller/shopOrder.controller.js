@@ -2,20 +2,30 @@ const db = require("../config/database");
 
 /* ================================
    GET ORDERS – SHOP DASHBOARD
-   (hide completed)
 ================================ */
 const getOrders = async (req, res) => {
   try {
     const result = await db.query(`
       SELECT
-        id,
-        order_code,
-        customer_name,
-        total_amount,
-        status,
-        created_at
-      FROM orders
-      ORDER BY created_at ASC
+        o.id,
+        o.order_code,
+        o.customer_name,
+        o.total_amount,
+        o.status,
+        o.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'name', oi.item_name,
+              'qty', oi.quantity
+            )
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'
+        ) AS items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      GROUP BY o.id
+      ORDER BY o.created_at ASC
     `);
 
     res.json(result.rows);
@@ -27,14 +37,11 @@ const getOrders = async (req, res) => {
 
 /* ================================
    ACCEPT ORDER
-   → notification only
-   → DB unchanged
 ================================ */
 const acceptOrder = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // optional: check order exists
     const check = await db.query(
       "SELECT id FROM orders WHERE id = $1 AND status = 'pending'",
       [id]
@@ -46,10 +53,13 @@ const acceptOrder = async (req, res) => {
       });
     }
 
-    res.json({
-      status: "preparing",
-      customer_message: "Your order is preparing 🍳"
-    });
+    // Optional: update to preparing
+    await db.query(
+      "UPDATE orders SET status = 'preparing' WHERE id = $1",
+      [id]
+    );
+
+    res.json({ status: "preparing" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -57,7 +67,6 @@ const acceptOrder = async (req, res) => {
 
 /* ================================
    READY
-   pending → ready
 ================================ */
 const markReady = async (req, res) => {
   const { id } = req.params;
@@ -67,7 +76,7 @@ const markReady = async (req, res) => {
       `
       UPDATE orders
       SET status = 'ready'
-      WHERE id = $1 AND status = 'pending'
+      WHERE id = $1 AND status = 'preparing'
       RETURNING *
       `,
       [id]
@@ -75,15 +84,11 @@ const markReady = async (req, res) => {
 
     if (result.rowCount === 0) {
       return res.status(400).json({
-        message: "Order already ready or completed"
+        message: "Order not in preparing state"
       });
     }
 
-    res.json({
-      status: "ready",
-      customer_message: "Your order is ready ✅",
-      order: result.rows[0]
-    });
+    res.json({ status: "ready" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -91,7 +96,6 @@ const markReady = async (req, res) => {
 
 /* ================================
    COMPLETED
-   ready → completed
 ================================ */
 const completeOrder = async (req, res) => {
   const { id } = req.params;
@@ -113,19 +117,12 @@ const completeOrder = async (req, res) => {
       });
     }
 
-    res.json({
-      status: "completed",
-      customer_message: "Order completed 🎉",
-      order: result.rows[0]
-    });
+    res.json({ status: "completed" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-/* ================================
-   EXPORTS
-================================ */
 module.exports = {
   getOrders,
   acceptOrder,
