@@ -14,15 +14,6 @@ exports.getAllProducts = async (vendorId) => {
 };
 
 // get single product by id (vendor edit)
-exports.getProductById = async (id) => {
-  const { rows } = await db.query(
-    "SELECT * FROM products WHERE id = $1",
-    [id]
-  );
-  return rows[0];
-};
-
-// create product
 exports.createProduct = async (vendorId, data) => {
   const { rows } = await db.query(
     `INSERT INTO products (
@@ -36,9 +27,10 @@ exports.createProduct = async (vendorId, data) => {
       is_live,
       preparing_minutes,
       food_type,
-      category
+      category,
+      subcategory
     )
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     RETURNING *`,
     [
       vendorId,
@@ -49,14 +41,16 @@ exports.createProduct = async (vendorId, data) => {
       data.discount,
       data.stock,
       data.is_live,
-      data.preparing_minutes, // ✅ FIX
+      data.preparing_minutes,
       data.food_type,
-      data.category
+      data.category,
+      data.subcategory
     ]
   );
 
   return rows[0];
 };
+
 
 
 // update product (vendor can turn live ON/OFF)
@@ -70,11 +64,12 @@ exports.updateProduct = async (id, data) => {
       discount = $5,
       stock = $6,
       is_live = $7,
-      preparing_minutes = $8, 
+      preparing_minutes = $8,
       food_type = $9,
       category = $10,
+      subcategory = $11,
       updated_at = NOW()
-     WHERE id = $11
+     WHERE id = $12
      RETURNING *`,
     [
       data.name,
@@ -84,15 +79,17 @@ exports.updateProduct = async (id, data) => {
       data.discount,
       data.stock,
       data.is_live,
-      data.prep_time,
+      data.preparing_minutes,
       data.food_type,
       data.category,
+      data.subcategory,
       id
     ]
   );
 
   return rows[0];
 };
+
 exports.updateLiveStatus = async (id, isLive) => {
   const { rows } = await db.query(
     `UPDATE products

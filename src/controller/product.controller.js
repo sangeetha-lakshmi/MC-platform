@@ -12,7 +12,8 @@ exports.getProductTemplate = (req, res) => {
     is_live: false,
     prep_time: 15,
     food_type: "VEG",
-    category: ""
+    category: "",
+    subcategory: ""
   });
 };
 
