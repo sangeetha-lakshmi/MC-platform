@@ -34,7 +34,7 @@ exports.createProduct = async (vendorId, data) => {
       discount,
       stock,
       is_live,
-      prep_time,
+      preparing_minutes,
       food_type,
       category
     )
@@ -49,7 +49,7 @@ exports.createProduct = async (vendorId, data) => {
       data.discount,
       data.stock,
       data.is_live,
-      data.prep_time,
+      data.preparing_minutes, // ✅ FIX
       data.food_type,
       data.category
     ]
@@ -57,6 +57,7 @@ exports.createProduct = async (vendorId, data) => {
 
   return rows[0];
 };
+
 
 // update product (vendor can turn live ON/OFF)
 exports.updateProduct = async (id, data) => {
@@ -69,7 +70,7 @@ exports.updateProduct = async (id, data) => {
       discount = $5,
       stock = $6,
       is_live = $7,
-      prep_time = $8,
+      preparing_minutes = $8, 
       food_type = $9,
       category = $10,
       updated_at = NOW()
