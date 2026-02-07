@@ -31,9 +31,21 @@ exports.getOne = async (req, res) => {
 
 // create product
 exports.create = async (req, res) => {
-  const product = await service.createProduct(req.user.id, req.body);
-  res.status(201).json(product);
+  try {
+    const image = req.file ? req.file.filename : null;
+
+    const product = await service.createProduct(req.user.id, {
+      ...req.body,
+      image,
+    });
+
+    res.status(201).json(product);
+  } catch (err) {
+    console.error("Create Product Error:", err.message);
+    res.status(500).json({ message: "Failed to create product" });
+  }
 };
+
 
 // update product
 exports.update = async (req, res) => {

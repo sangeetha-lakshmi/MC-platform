@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-
+const path = require("path");
 const orderRoutes = require("./routes/shopOrder.routes");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
@@ -8,7 +8,7 @@ const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
 
 const app = express();
-
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 app.use(
   cors({
     origin: [

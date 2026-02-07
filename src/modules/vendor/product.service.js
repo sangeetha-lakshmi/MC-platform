@@ -44,12 +44,13 @@ exports.createProduct = async (vendorId, data) => {
       data.preparing_minutes,
       data.food_type,
       data.category,
-      data.subcategory
+      data.subcategory,
     ]
   );
 
   return rows[0];
 };
+
 
 
 
