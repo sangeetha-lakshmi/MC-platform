@@ -30,23 +30,30 @@ exports.getOne = async (req, res) => {
 };
 
 // create product
+const { DEFAULT_PRODUCT_IMAGE } = require("../constants/defaults");
+
 exports.create = async (req, res) => {
   try {
-    // 🔒 HARD GUARD
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized vendor" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const image = req.file ? req.file.filename : null;
+    // ✅ IMAGE HANDLING (ALL CASES)
+    let image = DEFAULT_PRODUCT_IMAGE;
 
-    // 🔢 FINAL PRICE CALCULATION (IMPORTANT)
-    const price = Number(req.body.price);
-    const discount = Number(req.body.discount || 0);
+    // Case 1: Image uploaded
+    if (req.file) {
+      image = req.file.filename;
+    }
+
+    // Case 2: Frontend sends image URL/string
+    if (req.body.image && typeof req.body.image === "string") {
+      image = req.body.image;
+    }
 
     const product = await service.createProduct(req.user.id, {
       ...req.body,
       image,
-      final_price: price - discount,
     });
 
     res.status(201).json(product);
@@ -55,6 +62,7 @@ exports.create = async (req, res) => {
     res.status(500).json({ message: "Failed to create product" });
   }
 };
+
 
 
 // update product

@@ -9,7 +9,7 @@ const upload = require("../middlewares/upload.middleware");
 router.post(
   "/",
   auth,
-  upload.single("image"),   // 👈 VERY IMPORTANT
+  upload.single("image"), // image OPTIONAL
   controller.create
 );
 
