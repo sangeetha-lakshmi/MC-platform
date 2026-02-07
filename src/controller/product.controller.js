@@ -32,11 +32,21 @@ exports.getOne = async (req, res) => {
 // create product
 exports.create = async (req, res) => {
   try {
+    // 🔒 HARD GUARD
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Unauthorized vendor" });
+    }
+
     const image = req.file ? req.file.filename : null;
+
+    // 🔢 FINAL PRICE CALCULATION (IMPORTANT)
+    const price = Number(req.body.price);
+    const discount = Number(req.body.discount || 0);
 
     const product = await service.createProduct(req.user.id, {
       ...req.body,
       image,
+      final_price: price - discount,
     });
 
     res.status(201).json(product);
