@@ -234,20 +234,6 @@ exports.toggleShopStatus = async (req, res) => {
 };
 
 //VENDOR DASHBOARD FETCH API
-exports.getVendorProfile = async (req, res) => {
-  const vendorId = req.user.id;
 
-  const result = await pool.query(
-    "SELECT name, is_online FROM vendors WHERE id = $1",
-    [vendorId]
-  );
 
-  const vendor = result.rows[0];
 
-  res.json({
-    ...vendor,
-    message: vendor.is_online
-      ? "You are back online"
-      : "You are now offline. No new orders will come."
-  });
-};
