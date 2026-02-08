@@ -24,9 +24,9 @@ const loginAdmin = async ({ email, password }) => {
 
 /* ---------------- PENDING VENDORS ---------------- */
 const getPendingVendors = async () => {
-  const result = await db.query(
-    "SELECT * FROM vendors WHERE status = 'pending'"
-  );
+ const result = await db.query(
+  "SELECT * FROM vendors WHERE is_approved IS FALSE"
+);
   return result.rows;
 };
 
