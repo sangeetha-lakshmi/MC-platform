@@ -25,7 +25,7 @@ const loginAdmin = async ({ email, password }) => {
 /* ---------------- PENDING VENDORS ---------------- */
 const getPendingVendors = async () => {
   const result = await db.query(
-    "SELECT * FROM vendors WHERE status = 'pending'"
+    "SELECT * FROM vendors WHERE is_approved = false"
   );
   return result.rows;
 };
@@ -33,7 +33,7 @@ const getPendingVendors = async () => {
 /* ---------------- APPROVE VENDOR ---------------- */
 const approveVendor = async (vendorId) => {
   await db.query(
-    "UPDATE vendors SET status = 'approved' WHERE id = $1",
+    "UPDATE vendors SET is_approved = true WHERE id = $1",
     [vendorId]
   );
 };
@@ -66,20 +66,13 @@ const changePassword = async (adminId, currentPassword, newPassword) => {
   );
 };
 
-/* ✅ Get Approved Vendors */
+/* ---------------- APPROVED VENDORS ---------------- */
 const getApprovedVendors = async () => {
-  try {
-    const result = await db.query(
-      "SELECT * FROM vendors WHERE is_approved = true"
-    );
-    return result.rows;
-  } catch (error) {
-    console.error("DB ERROR (getApprovedVendors):", error.message);
-    throw new Error("Failed to fetch approved vendors");
-  }
+  const result = await db.query(
+    "SELECT * FROM vendors WHERE is_approved = true"
+  );
+  return result.rows;
 };
-
-
 
 module.exports = {
   loginAdmin,

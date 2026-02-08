@@ -16,7 +16,20 @@ exports.login = async (req, res) => {
       message: "Login successful",
       token
     });
-  } catch (err) {
-    res.status(401).json({ error: err.message });
+ } catch (err) {
+  if (err.message === "User not found") {
+    return res.status(404).json({ message: "Account not found" });
   }
+
+  if (err.message === "Invalid password") {
+    return res.status(401).json({ message: "Incorrect password" });
+  }
+
+  if (err.message === "Admin approval pending") {
+    return res.status(403).json({ message: "Admin approval pending" });
+  }
+
+  return res.status(500).json({ message: "Server error" });
+}
+
 };

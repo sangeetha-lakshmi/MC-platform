@@ -12,7 +12,7 @@ exports.login = async ({ email, password }) => {
     const admin = adminResult.rows[0];
 
     const match = await comparePassword(password, admin.password_hash);
-    if (!match) throw new Error("Invalid credentials");
+    if (!match) throw new Error("Invalid password");
 
     return { id: admin.id }; // ✅ ONLY ID
   }
