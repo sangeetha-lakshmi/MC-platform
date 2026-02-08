@@ -4,6 +4,7 @@ const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
 
 /* ✅ Register Vendor */
+/* ✅ Register Vendor */
 exports.registerVendor = async (req, res) => {
   try {
     const {
@@ -34,6 +35,14 @@ exports.registerVendor = async (req, res) => {
       });
     }
 
+    // ✅ NEW: check duplicate email (SAFE FIX)
+    const existingVendor = await vendorService.findVendorByEmail(email);
+    if (existingVendor) {
+      return res.status(409).json({
+        message: "Email already registered"
+      });
+    }
+
     const password_hash = await bcrypt.hash(password, 10);
 
     await vendorService.createVendor({
@@ -54,9 +63,13 @@ exports.registerVendor = async (req, res) => {
       message: "Vendor registered successfully. Waiting for admin approval"
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Register Vendor Error:", err);
+    res.status(500).json({
+      message: "Vendor registration failed"
+    });
   }
 };
+
 
 /* ✅ Vendor Login */
 exports.loginVendor = async (req, res) => {
