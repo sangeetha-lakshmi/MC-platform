@@ -14,7 +14,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://mc-platform-gpsuzkr-sangeetha-lakshmis-projects.vercel.app"
+      "https://mc-frontend-xnet-hq8x54qxo-sowdha-begams-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

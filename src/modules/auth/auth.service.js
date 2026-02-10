@@ -16,6 +16,20 @@ exports.login = async ({ email, password }) => {
 
     return { id: admin.id }; // ✅ ONLY ID
   }
+  // 1️⃣.5 CUSTOMER CHECK 
+  const customerResult = await pool.query(
+    "SELECT id, password_hash FROM customers WHERE email = $1",
+    [email]
+  );
+
+  if (customerResult.rowCount > 0) {
+    const customer = customerResult.rows[0];
+
+    const match = await comparePassword(password, customer.password_hash);
+    if (!match) throw new Error("Invalid password");
+
+    return { id: customer.id }; // ✅ ONLY ID
+  }
 
   // 2️⃣ VENDOR CHECK
   const vendorResult = await pool.query(
@@ -37,4 +51,37 @@ exports.login = async ({ email, password }) => {
   if (!match) throw new Error("Invalid credentials");
 
   return { id: vendor.id }; // ✅ ONLY ID
+};
+//customer register 
+const { hashPassword } = require("../../utils/password.utils");
+
+exports.registerCustomer = async ({
+  name,
+  email,
+  password,
+  latitude,
+  longitude,
+  address
+}) => {
+
+  // check existing customer
+  const existing = await pool.query(
+    "SELECT id FROM customers WHERE email = $1",
+    [email]
+  );
+
+  if (existing.rowCount > 0) {
+    throw new Error("Customer already exists");
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  await pool.query(
+    `INSERT INTO customers
+     (name, email, password_hash, latitude, longitude, address)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [name, email, passwordHash, latitude, longitude, address]
+  );
+
+  return true;
 };

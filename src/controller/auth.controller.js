@@ -33,3 +33,19 @@ exports.login = async (req, res) => {
 }
 
 };
+//Customer registration controller
+exports.registerCustomer = async (req, res) => {
+  try {
+    await authService.registerCustomer(req.body);
+
+    res.status(201).json({
+      message: "Customer registered successfully"
+    });
+  } catch (err) {
+    if (err.message === "Customer already exists") {
+      return res.status(400).json({ message: err.message });
+    }
+
+    return res.status(500).json({ message: "Server error" });
+  }
+};
