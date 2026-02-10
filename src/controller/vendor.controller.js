@@ -15,6 +15,8 @@ exports.registerVendor = async (req, res) => {
       password,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -27,6 +29,7 @@ exports.registerVendor = async (req, res) => {
       !email ||
       !phone ||
       !password ||
+      !latitude || !longitude ||
       !business_type
     ) {
       return res.status(400).json({
@@ -53,6 +56,8 @@ exports.registerVendor = async (req, res) => {
       password_hash,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -132,6 +137,8 @@ exports.getVendorProfile = async (req, res) => {
         address,
         opening_time,
         closing_time,
+        latitude,
+        longitude,
         shop_logo,
         license_doc,
         created_at
