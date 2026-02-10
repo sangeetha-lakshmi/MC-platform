@@ -4,5 +4,6 @@ const authController = require("../controller/auth.controller");
 // 🔑 ONE LOGIN FOR ADMIN + VENDOR
 router.post("/login", authController.login);
 router.post("/register/customer", authController.registerCustomer);
+router.put("/update/:id", authController.updateCustomerProfile);
 
 module.exports = router;
