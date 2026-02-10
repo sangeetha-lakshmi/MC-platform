@@ -6,7 +6,7 @@ const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
-
+const commonCategoryRoutes = require("./routes/commonCategory.routes");
 const app = express();
 
 app.use(
@@ -41,10 +41,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/products", productRoutes);
-
+app.use("/api/common", commonCategoryRoutes);
 /* 404 */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });
+
 
 module.exports = app;
