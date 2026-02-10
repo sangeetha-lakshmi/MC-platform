@@ -8,6 +8,7 @@ const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
 const deliveryRoutes = require("./routes/delivery.routes");
 
+const commonCategoryRoutes = require("./routes/commonCategory.routes");
 const app = express();
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://mc-frontend-xnet-hq8x54qxo-sowdha-begams-projects.vercel.app");
@@ -48,7 +49,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/delivery", deliveryRoutes);
-
+app.use("/api/common", commonCategoryRoutes);
 /* HEALTH */
 app.get("/", (req, res) => {
   res.send("MC Platform Backend is running 🚀");
@@ -57,6 +58,7 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.send("MC Platform Backend is healthy ✅");
 });
+
 /* 404 */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
