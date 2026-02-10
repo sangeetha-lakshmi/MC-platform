@@ -4,14 +4,7 @@ const controller = require("../controller/product.controller");
 const auth = require("../middlewares/auth.middleware");
 
 // only logged-in vendor can access
-const upload = require("../middlewares/upload.middleware");
 
-router.post(
-  "/",
-  auth,
-  upload.single("image"), // image OPTIONAL
-  controller.create
-);
 
 router.get("/template", auth, controller.getProductTemplate);
 router.get("/", auth, controller.getAll);

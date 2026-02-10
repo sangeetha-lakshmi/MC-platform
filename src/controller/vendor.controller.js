@@ -74,15 +74,16 @@ exports.registerVendor = async (req, res) => {
 /* ✅ Vendor Login */
 exports.loginVendor = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
-    const vendor = await vendorService.findVendorByEmail(email);
+    const vendor = await vendorService.findVendorByEmailOrPhone(identifier);
+
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
