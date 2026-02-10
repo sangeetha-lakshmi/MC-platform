@@ -8,6 +8,18 @@ const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
 
 const app = express();
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://mc-frontend-xnet-hq8x54qxo-sowdha-begams-projects.vercel.app");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
 
 app.use(
   cors({

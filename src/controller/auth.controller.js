@@ -35,6 +35,13 @@ exports.login = async (req, res) => {
 };
 //Customer registration controller
 exports.registerCustomer = async (req, res) => {
+    const { name, email, phone, password } = req.body;
+
+  if (!name || !password || (!email && !phone)) {
+    return res.status(400).json({
+      message: "Name, password and email or phone are required"
+    });
+  }
   try {
     await authService.registerCustomer(req.body);
 

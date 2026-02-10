@@ -1,7 +1,7 @@
 const pool = require("../../config/database");
 const { comparePassword } = require("../../utils/password.utils");
 
-exports.login = async ({ email, password }) => {
+exports.login = async ({ email, phone, password }) => {
   // 1️⃣ ADMIN CHECK
   const adminResult = await pool.query(
     "SELECT id, password_hash FROM admin_users WHERE email = $1",
@@ -17,9 +17,11 @@ exports.login = async ({ email, password }) => {
     return { id: admin.id }; // ✅ ONLY ID
   }
   // 1️⃣.5 CUSTOMER CHECK 
+const identifier = email || phone;
+
   const customerResult = await pool.query(
-    "SELECT id, password_hash FROM customers WHERE email = $1",
-    [email]
+    `SELECT id, password_hash FROM app_data.customers WHERE email = $1 OR phone = $1`,
+    [identifier]
   );
 
   if (customerResult.rowCount > 0) {
@@ -55,19 +57,26 @@ exports.login = async ({ email, password }) => {
 //customer register 
 const { hashPassword } = require("../../utils/password.utils");
 
-exports.registerCustomer = async ({
-  name,
-  email,
-  password,
-  latitude,
-  longitude,
-  address
-}) => {
+exports.registerCustomer = async (data) => {
+  const {
+    name,
+    email,
+    phone,
+    password,
+    latitude,
+    longitude,
+    address
+  } = data;
+
 
   // check existing customer
+  // check existing customer (email OR phone)
   const existing = await pool.query(
-    "SELECT id FROM customers WHERE email = $1",
-    [email]
+    `SELECT id
+     FROM app_data.customers
+     WHERE (email = $1 AND $1 IS NOT NULL)
+        OR (phone = $2 AND $2 IS NOT NULL)`,
+    [email ?? null, phone ?? null]
   );
 
   if (existing.rowCount > 0) {
@@ -77,10 +86,16 @@ exports.registerCustomer = async ({
   const passwordHash = await hashPassword(password);
 
   await pool.query(
-    `INSERT INTO customers
+    `INSERT INTO app_data.customers
      (name, email, password_hash, latitude, longitude, address)
-     VALUES ($1,$2,$3,$4,$5,$6)`,
-    [name, email, passwordHash, latitude, longitude, address]
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [ name,
+      email || null,
+      phone || null,
+      passwordHash,
+      latitude || null,
+      longitude || null,
+      address || null]
   );
 
   return true;
