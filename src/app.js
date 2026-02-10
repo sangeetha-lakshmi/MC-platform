@@ -8,7 +8,7 @@ const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
 
 const app = express();
-app.use("/uploads", express.static("uploads"));
+
 app.use(
   cors({
     origin: [
@@ -23,9 +23,17 @@ app.use(
 );
 app.options("*", cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 /* SHOP ORDERS */
 app.use("/api/shop", orderRoutes);
+
+
+/* OTHER ROUTES */
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/vendor", vendorRoutes);
+app.use("/api/products", productRoutes);
 
 /* HEALTH */
 app.get("/", (req, res) => {
@@ -35,13 +43,6 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.send("MC Platform Backend is healthy ✅");
 });
-
-/* OTHER ROUTES */
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/vendor", vendorRoutes);
-app.use("/api/products", productRoutes);
-
 /* 404 */
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
