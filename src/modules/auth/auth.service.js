@@ -55,6 +55,7 @@ const identifier = email || phone;
   return { id: vendor.id }; // ✅ ONLY ID
 };
 //customer register 
+// customer register 
 const { hashPassword } = require("../../utils/password.utils");
 
 exports.registerCustomer = async (data) => {
@@ -68,8 +69,6 @@ exports.registerCustomer = async (data) => {
     address
   } = data;
 
-
-  // check existing customer
   // check existing customer (email OR phone)
   const existing = await pool.query(
     `SELECT id
@@ -85,17 +84,20 @@ exports.registerCustomer = async (data) => {
 
   const passwordHash = await hashPassword(password);
 
+  // ✅ FIXED INSERT
   await pool.query(
     `INSERT INTO app_data.customers
-     (name, email, password_hash, latitude, longitude, address)
+     (name, email, phone, password_hash, latitude, longitude, address)
      VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-    [ name,
-      email || null,
-      phone || null,
+    [
+      name,
+      email ?? null,
+      phone ?? null,
       passwordHash,
-      latitude || null,
-      longitude || null,
-      address || null]
+      latitude ?? null,
+      longitude ?? null,
+      address ?? null
+    ]
   );
 
   return true;
