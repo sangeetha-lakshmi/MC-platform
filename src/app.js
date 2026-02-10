@@ -11,6 +11,7 @@ const deliveryRoutes = require("./routes/delivery.routes");
 const commonCategoryRoutes = require("./routes/commonCategory.routes");
 const app = express();
 
+
 app.use(
   cors({
     origin: [

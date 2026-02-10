@@ -15,6 +15,8 @@ exports.registerVendor = async (req, res) => {
       password,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -27,6 +29,7 @@ exports.registerVendor = async (req, res) => {
       !email ||
       !phone ||
       !password ||
+      !latitude || !longitude ||
       !business_type
     ) {
       return res.status(400).json({
@@ -53,6 +56,8 @@ exports.registerVendor = async (req, res) => {
       password_hash,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -74,15 +79,16 @@ exports.registerVendor = async (req, res) => {
 /* ✅ Vendor Login */
 exports.loginVendor = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
-    const vendor = await vendorService.findVendorByEmail(email);
+    const vendor = await vendorService.findVendorByEmailOrPhone(identifier);
+
 
     if (!vendor) {
       return res.status(404).json({ error: "Vendor not found" });
@@ -131,6 +137,8 @@ exports.getVendorProfile = async (req, res) => {
         address,
         opening_time,
         closing_time,
+        latitude,
+        longitude,
         shop_logo,
         license_doc,
         created_at

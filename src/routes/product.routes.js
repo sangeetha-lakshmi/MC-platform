@@ -9,6 +9,8 @@ router.post(
   auth,
   controller.create
 );
+// only logged-in vendor can access
+
 
 router.get("/template", auth, controller.getProductTemplate);
 router.get("/", auth, controller.getAll);

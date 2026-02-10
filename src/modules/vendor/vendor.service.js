@@ -11,6 +11,8 @@ exports.createVendor = async ({
   password_hash,
   business_type,
   address,
+  latitude,
+  longitude,
   opening_time,
   closing_time,
   shop_logo,
@@ -26,6 +28,8 @@ exports.createVendor = async ({
       password_hash,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -41,6 +45,8 @@ exports.createVendor = async ({
       password_hash,
       business_type,
       address,
+      latitude,
+      longitude,
       opening_time,
       closing_time,
       shop_logo,
@@ -60,4 +66,15 @@ exports.findVendorByEmail = async (email) => {
 
   return result.rows[0];
 };
-/*restoring*/
+
+exports.findVendorByEmailOrPhone = async (identifier) => {
+  const result = await pool.query(
+    `
+    SELECT * FROM public.vendors
+    WHERE email = $1 OR phone = $1
+    `,
+    [identifier]
+  );
+
+  return result.rows[0];
+};
