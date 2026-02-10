@@ -7,6 +7,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 // ✅ Admin login (public)
 router.post("/login", adminController.adminLogin);
 
+
 // 🔐 Protected routes
 router.get(
   "/pending",

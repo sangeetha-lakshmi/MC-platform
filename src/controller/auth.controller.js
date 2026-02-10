@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
 const authService = require("../modules/auth/auth.service");
+const pool = require("../config/database");
+
+
 
 exports.login = async (req, res) => {
   try {
@@ -54,5 +57,48 @@ exports.registerCustomer = async (req, res) => {
     }
 
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.updateCustomerProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, address, password } = req.body;
+
+    let query;
+    let values;
+
+    if (password) {
+      const bcrypt = require("bcrypt");
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      query = `
+        UPDATE app_data.customers
+        SET name=$1, phone=$2, address=$3, password_hash=$4
+        WHERE id=$5
+        RETURNING id,name,phone,address,email
+      `;
+      values = [name, phone, address, hashedPassword, id];
+
+    } else {
+      query = `
+        UPDATE app_data.customers
+        SET name=$1, phone=$2, address=$3
+        WHERE id=$4
+        RETURNING id,name,phone,address,email
+      `;
+      values = [name, phone, address, id];
+    }
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      message: "Profile updated successfully",
+      user: result.rows[0]
+    });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Update failed" });
   }
 };
