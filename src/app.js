@@ -4,6 +4,7 @@ const cors = require("cors");
 const authRoutes = require("./routes/auth.routes");
 const adminRoutes = require("./routes/admin.routes");
 const vendorRoutes = require("./routes/vendor.routes");
+const deliveryRoutes = require("./routes/delivery.routes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 // ❌ fallback MUST be LAST
 app.use((req, res) => {
