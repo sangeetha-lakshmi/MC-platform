@@ -9,6 +9,8 @@ const productRoutes = require("./routes/product.routes");
 const deliveryRoutes = require("./routes/delivery.routes");
 
 const commonCategoryRoutes = require("./routes/commonCategory.routes");
+const customerRoutes = require("./routes/customer.routes");
+
 const app = express();
 
 
@@ -39,6 +41,9 @@ app.use("/api/vendor", vendorRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/common", commonCategoryRoutes);
+app.use("/api/customer", customerRoutes);
+
+
 /* HEALTH */
 app.get("/", (req, res) => {
   res.send("MC Platform Backend is running 🚀");
