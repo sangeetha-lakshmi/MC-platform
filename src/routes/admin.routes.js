@@ -4,10 +4,12 @@ const router = express.Router();
 const adminController = require("../controller/admin.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
+
+
 // ✅ Admin login (public)
 router.post("/login", adminController.adminLogin);
 
-
+router.use(authMiddleware);
 // 🔐 Protected routes
 router.get(
   "/pending",
@@ -38,6 +40,11 @@ router.put(
   authMiddleware,
   adminController.changeAdminPassword
 );
+router.get("/category-count", adminController.getCategoryCount);
+router.get("/shops", adminController.getShops);
+router.get("/shops/:id", adminController.getShopById);
+router.get("/shops/:id/products", adminController.getShopProducts);
+router.patch("/products/:id/toggle", adminController.toggleProduct);
 
 // debug
 console.log("Admin Controller Loaded:", Object.keys(adminController));

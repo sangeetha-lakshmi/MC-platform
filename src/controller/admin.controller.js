@@ -93,11 +93,76 @@ const changeAdminPassword = async (req, res) => {
 };
 
 
+// 1️⃣ Category Count
+const getCategoryCount = async (req, res) => {
+  try {
+    const data = await adminService.getCategoryCount();
+    res.json(data);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 2️⃣ Get Shops
+const getShops = async (req, res) => {
+  try {
+    const { category } = req.query;
+    const shops = await adminService.getShops(category);
+    res.json(shops);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 3️⃣ Get Single Shop
+const getShopById = async (req, res) => {
+  try {
+    const shop = await adminService.getShopById(req.params.id);
+    res.json(shop);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 4️⃣ Get Shop Products
+const getShopProducts = async (req, res) => {
+  try {
+    const products = await adminService.getShopProducts(req.params.id);
+    res.json(products);
+  } catch {
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// 5️⃣ Toggle Product
+const toggleProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updatedProduct = await adminService.toggleProduct(id);
+
+    res.json({
+      message: "Product status updated successfully",
+      data: updatedProduct
+    });
+
+  } catch (err) {
+    console.error("Toggle Product Error:", err.message);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+
 module.exports = {
-  adminLogin,
+adminLogin,
   getPendingVendors,
   approveVendor,
   declineVendor,
   getApprovedVendors,
-  changeAdminPassword
+  changeAdminPassword,
+  getCategoryCount,
+  getShops,
+  getShopById,
+  getShopProducts,
+  toggleProduct
 };

@@ -74,10 +74,101 @@ const getApprovedVendors = async () => {
   return result.rows;
 };
 
+// 1️⃣ Category Count
+const getCategoryCount = async () => {
+  const result = await db.query(`
+    SELECT business_type, COUNT(*) AS shop_count
+    FROM vendors
+    WHERE is_approved = true
+    GROUP BY business_type
+    ORDER BY business_type;
+  `);
+
+  return result.rows;
+};
+
+// 2️⃣ Get Shops (All or Filtered)
+const getShops = async (category) => {
+  let query = `
+    SELECT id, shop_name, email, business_type
+    FROM vendors
+    WHERE is_approved = true
+  `;
+
+  const values = [];
+
+  if (category) {
+    query += ` AND business_type = $1`;
+    values.push(category);
+  }
+
+  query += ` ORDER BY created_at DESC`;
+
+const result = await db.query(query, values);
+  return result.rows;
+};
+
+// 3️⃣ Get Single Shop
+const getShopById = async (id) => {
+  const result = await db.query(
+    `SELECT id, shop_name, email, business_type
+     FROM vendors
+     WHERE id = $1`,
+    [id]
+  );
+  return result.rows[0];
+};
+
+// 4️⃣ Get Products of Shop
+const getShopProducts = async (vendorId) => {
+  const result = await db.query(
+    `SELECT 
+        id,
+        name,
+        price,
+        final_price,
+        stock,
+        is_live,
+        category,
+        subcategory
+     FROM products
+     WHERE vendor_id = $1
+     ORDER BY id DESC`,
+    [vendorId]
+  );
+
+  return result.rows;
+};
+
+
+// 5️⃣ Toggle Product
+const toggleProduct = async (productId) => {
+  const result = await db.query(
+    `UPDATE products
+     SET is_live = NOT is_live,
+         updated_at = NOW()
+     WHERE id = $1
+     RETURNING id, name, is_live`,
+    [productId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Product not found");
+  }
+
+  return result.rows[0];
+};
+
+
 module.exports = {
-  loginAdmin,
+loginAdmin,
   getPendingVendors,
   approveVendor,
   changePassword,
-  getApprovedVendors
+  getApprovedVendors,
+  getCategoryCount,
+  getShops,
+  getShopById,
+  getShopProducts,
+  toggleProduct
 };
