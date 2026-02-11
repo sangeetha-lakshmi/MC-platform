@@ -34,7 +34,7 @@ exports.registerVendor = async (req, res) => {
     ) {
       return res.status(400).json({
         error:
-          "shop_name, owner_name, email, phone, password, business_type are required"
+          "shop_name, owner_name, email, phone, password, business_type are required, latitude and longitude are required"
       });
     }
 
