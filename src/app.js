@@ -17,7 +17,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://multistore-web-app.onrender.com/shop-dashboard"
+      "https://multistore-web-app.onrender.com/"
     ],
     methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
