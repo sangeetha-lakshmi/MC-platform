@@ -17,7 +17,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://mc-frontend-xnet-hq8x54qxo-sowdha-begams-projects.vercel.app"
+      "https://multistore-web-app.onrender.com/shop-dashboard"
     ],
     methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
