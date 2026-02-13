@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../config/database");
-
+const { registerDeliveryPartner } = require("../controller/delivery.controller");
 
 router.post("/request", async (req, res) => {
   const {
@@ -95,6 +95,7 @@ router.get("/user/:userId", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
+router.post("/register", registerDeliveryPartner);
 
 module.exports = router;
+
