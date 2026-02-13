@@ -1,6 +1,7 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+
 // Check if DATABASE_URL exists
 if (!process.env.DATABASE_URL) {
   console.error("❌ DATABASE_URL is missing");
@@ -30,5 +31,8 @@ pool.query("SELECT current_database()", (err, res) => {
     console.log("✅ Connected Database:", res.rows[0].current_database);
   }
 });
+
+
+
 
 module.exports = pool;

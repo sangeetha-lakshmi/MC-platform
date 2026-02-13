@@ -5,20 +5,33 @@ const pool = require("../config/database");
 
 
 exports.login = async (req, res) => {
+
+
   try {
     const user = await authService.login(req.body);
-
+console.log("User from DB:", user);
     // 🔐 JWT with ONLY id
     const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+  { 
+    id: user.id,
+    role: user.role   // 👈 IMPORTANT
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "1d" }
+);
+
+  // 🔍 DEBUG START
+    const decoded = jwt.decode(token);
+    console.log("New Token Expiry:", new Date(decoded.exp * 1000));
+    console.log("Current Time At Login:", new Date());
+    // 🔍 DEBUG END
 
     res.status(200).json({
       message: "Login successful",
       token
     });
+
+    
  } catch (err) {
   if (err.message === "User not found") {
     return res.status(404).json({ message: "Account not found" });
@@ -98,6 +111,7 @@ exports.updateCustomerProfile = async (req, res) => {
     });
 
   } catch (err) {
+     console.log("REAL LOGIN ERROR:", err); 
     console.log(err);
     res.status(500).json({ message: "Update failed" });
   }
