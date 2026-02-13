@@ -5,6 +5,7 @@ const pool = require("../config/database");
 
 
 exports.login = async (req, res) => {
+
   try {
     const user = await authService.login(req.body);
 
@@ -14,6 +15,16 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
+  // 🔍 DEBUG START
+    const decoded = jwt.decode(token);
+    console.log("New Token Expiry:", new Date(decoded.exp * 1000));
+    console.log("Current Time At Login:", new Date());
+    // 🔍 DEBUG END
+
+    res.status(200).json({
+      message: "Login successful",
+      token
+    });
 
     res.status(200).json({
       message: "Login successful",
