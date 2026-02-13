@@ -10,7 +10,7 @@ const deliveryRoutes = require("./routes/delivery.routes");
 
 const commonCategoryRoutes = require("./routes/commonCategory.routes");
 const customerRoutes = require("./routes/customer.routes");
-
+const adminDeliveryRoutes = require("./routes/adminDeliveryRoutes");
 const app = express();
 
 
@@ -42,7 +42,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/common", commonCategoryRoutes);
 app.use("/api/customer", customerRoutes);
-
+app.use("/api/admin/deliveries", adminDeliveryRoutes);
 
 /* HEALTH */
 app.get("/", (req, res) => {
