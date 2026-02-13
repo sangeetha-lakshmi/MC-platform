@@ -91,6 +91,20 @@ const changeAdminPassword = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+/* ---------------- GET DECLINED VENDORS ---------------- */
+const getDeclinedVendors = async (req, res) => {
+  try {
+    const vendors = await adminService.getDeclinedVendors();
+    res.json({
+      success: true,
+      data: vendors
+    });
+  } catch (error) {
+    console.error("Get Declined Vendors Error:", error.message);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 
 
 // 1️⃣ Category Count
@@ -153,12 +167,16 @@ const toggleProduct = async (req, res) => {
 };
 
 
+  
+
+
 module.exports = {
 adminLogin,
   getPendingVendors,
   approveVendor,
   declineVendor,
   getApprovedVendors,
+  getDeclinedVendors, 
   changeAdminPassword,
   getCategoryCount,
   getShops,

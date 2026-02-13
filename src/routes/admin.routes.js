@@ -45,6 +45,8 @@ router.get("/shops", adminController.getShops);
 router.get("/shops/:id", adminController.getShopById);
 router.get("/shops/:id/products", adminController.getShopProducts);
 router.patch("/products/:id/toggle", adminController.toggleProduct);
+router.get("/vendors/declined", adminController.getDeclinedVendors);
+
 
 // debug
 console.log("Admin Controller Loaded:", Object.keys(adminController));

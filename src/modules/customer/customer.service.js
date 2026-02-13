@@ -35,7 +35,7 @@ exports.getNearbyVendorsByCategoryAndSubCategory = async ({
       AND p.subcategory = $4     -- ✅ CORRECT
       AND p.is_live = true
       AND v.is_online = true
-      AND v.is_approved = true
+      AND v.is_approved = 'approved'  -- ✅ CORRECT
     GROUP BY v.id
     HAVING
       6371 * acos(

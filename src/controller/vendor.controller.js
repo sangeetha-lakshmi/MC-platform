@@ -94,11 +94,18 @@ exports.loginVendor = async (req, res) => {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
-    if (!vendor.is_approved) {
-      return res.status(403).json({
-        error: "Admin approval pending"
-      });
-    }
+   if (vendor.is_approved === "declined") {
+  return res.status(403).json({
+    error: "Your account has been declined by admin"
+  });
+}
+
+if (vendor.is_approved === "pending") {
+  return res.status(403).json({
+    error: "Admin approval pending"
+  });
+}
+
 
     const match = await bcrypt.compare(password, vendor.password_hash);
     if (!match) {

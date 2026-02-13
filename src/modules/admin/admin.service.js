@@ -25,7 +25,7 @@ const loginAdmin = async ({ email, password }) => {
 /* ---------------- PENDING VENDORS ---------------- */
 const getPendingVendors = async () => {
   const result = await db.query(
-    "SELECT * FROM vendors WHERE is_approved = false"
+    "SELECT * FROM vendors WHERE is_approved = 'pending'"
   );
   return result.rows;
 };
@@ -33,10 +33,20 @@ const getPendingVendors = async () => {
 /* ---------------- APPROVE VENDOR ---------------- */
 const approveVendor = async (vendorId) => {
   await db.query(
-    "UPDATE vendors SET is_approved = true WHERE id = $1",
+    "UPDATE vendors SET is_approved = 'approved' WHERE id = $1",
     [vendorId]
   );
 };
+
+/* ---------------- DECLINE VENDOR ---------------- */
+const declineVendor = async (vendorId) => {
+  await db.query(
+    "UPDATE vendors SET is_approved = 'declined' WHERE id = $1",
+    [vendorId]
+  );
+};
+
+
 
 /* ---------------- CHANGE PASSWORD ---------------- */
 const changePassword = async (adminId, currentPassword, newPassword) => {
@@ -69,17 +79,26 @@ const changePassword = async (adminId, currentPassword, newPassword) => {
 /* ---------------- APPROVED VENDORS ---------------- */
 const getApprovedVendors = async () => {
   const result = await db.query(
-    "SELECT * FROM vendors WHERE is_approved = true"
+    "SELECT * FROM vendors WHERE is_approved = 'approved'"
   );
   return result.rows;
 };
+
+/* ---------------- DECLINED VENDORS ---------------- */
+const getDeclinedVendors = async () => {
+  const result = await db.query(
+    "SELECT * FROM vendors WHERE is_approved = 'declined'"
+  );
+  return result.rows;
+};
+
 
 // 1️⃣ Category Count
 const getCategoryCount = async () => {
   const result = await db.query(`
     SELECT business_type, COUNT(*) AS shop_count
     FROM vendors
-    WHERE is_approved = true
+    WHERE is_approved = 'approved'
     GROUP BY business_type
     ORDER BY business_type;
   `);
@@ -92,7 +111,7 @@ const getShops = async (category) => {
   let query = `
     SELECT id, shop_name, email, business_type
     FROM vendors
-    WHERE is_approved = true
+    WHERE is_approved = 'approved'
   `;
 
   const values = [];
@@ -164,11 +183,13 @@ module.exports = {
 loginAdmin,
   getPendingVendors,
   approveVendor,
+  declineVendor,
   changePassword,
   getApprovedVendors,
+  getDeclinedVendors, 
   getCategoryCount,
   getShops,
   getShopById,
-  getShopProducts,
+  getShopProducts, 
   toggleProduct
 };
