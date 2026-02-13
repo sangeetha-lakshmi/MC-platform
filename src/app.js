@@ -7,10 +7,10 @@ const adminRoutes = require("./routes/admin.routes");
 const vendorRoutes = require("./routes/vendor.routes");
 const productRoutes = require("./routes/product.routes");
 const deliveryRoutes = require("./routes/delivery.routes");
-
+const adminDeliveryRoutes = require("./routes/adminDeliveryRoutes");
 const commonCategoryRoutes = require("./routes/commonCategory.routes");
 const customerRoutes = require("./routes/customer.routes");
-const adminDeliveryRoutes = require("./routes/adminDeliveryRoutes");
+
 const app = express();
 
 
@@ -42,6 +42,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/common", commonCategoryRoutes);
 app.use("/api/customer", customerRoutes);
+app.use("/api/admin/delivery_partners", adminDeliveryRoutes);
 app.use("/api/admin/deliveries", adminDeliveryRoutes);
 
 /* HEALTH */

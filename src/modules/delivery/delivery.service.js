@@ -40,7 +40,7 @@ const register = async (data) => {
   ============================ */
 
   const existing = await db.query(
-    "SELECT id FROM delivery_partners WHERE email = $1",
+    "SELECT id FROM delivery_partnerss WHERE email = $1",
     [email]
   );
 
@@ -61,7 +61,7 @@ const register = async (data) => {
   // rest of validation...
 
 await db.query(
-    `INSERT INTO delivery_partners
+    `INSERT INTO delivery_partnerss
      (name,email,phone,password_hash,
       aadhar_number,pan_number,
       vehicle_type,vehicle_number,

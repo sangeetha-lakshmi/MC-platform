@@ -80,7 +80,7 @@ router.put("/status/:id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-// Get all deliveries of a user
+// Get all delivery_partners of a user
 router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
