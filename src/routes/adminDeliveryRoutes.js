@@ -14,5 +14,10 @@ router.put("/reset-password/:id", adminController.resetPassword);
 
 router.put("/edit-profile-id/:id", adminController.editProfileId);
 
+router.get("/:id", adminController.getDeliveryById);
+
+router.put("/edit/:id", adminController.editDeliveryProfile);
+
+
 
 module.exports = router;

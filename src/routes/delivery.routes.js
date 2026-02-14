@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../config/database");
-const { registerDeliveryPartner } = require("../controller/delivery.controller");
+const deliveryController = require("../controller/delivery.controller");
+
 
 router.post("/request", async (req, res) => {
   const {
@@ -34,7 +35,8 @@ router.post("/request", async (req, res) => {
   res.json(result.rows[0]);
 });
 // Get delivery details
-router.get("/:id", async (req, res) => {
+router.get("/request/:id", async (req, res) => {
+
   try {
     const { id } = req.params;
 
@@ -81,21 +83,67 @@ router.put("/status/:id", async (req, res) => {
   }
 });
 // Get all delivery_partners of a user
-router.get("/user/:userId", async (req, res) => {
+router.get("/profile/:id", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { id } = req.params;
 
     const result = await pool.query(
-      "SELECT * FROM delivery_requests WHERE user_id = $1 ORDER BY created_at DESC",
-      [userId]
+      `SELECT id, name, email, phone, vehicle_type, vehicle_number,
+              profile_id, is_approved, is_active, created_at
+       FROM delivery_partners
+       WHERE id = $1`,
+      [id]
     );
 
-    res.json(result.rows);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
+    }
+
+    res.json(result.rows[0]);
+
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("PROFILE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-router.post("/register", registerDeliveryPartner);
+
+// Update Delivery Partner Profile
+router.put("/profile/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone, vehicle_type, vehicle_number } = req.body;
+
+    const result = await pool.query(
+      `UPDATE delivery_partners
+       SET name = $1,
+           phone = $2,
+           vehicle_type = $3,
+           vehicle_number = $4
+       WHERE id = $5
+       RETURNING id, name, email, phone, vehicle_type, vehicle_number,
+                 profile_id, is_approved, is_active, created_at`,
+      [name, phone, vehicle_type, vehicle_number, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
+    }
+
+    res.json({
+      message: "Profile Updated Successfully",
+      data: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("UPDATE PROFILE ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+router.post("/register", deliveryController.registerDeliveryPartner);
+
+router.put("/change-password/:id", deliveryController.changePassword);
 
 module.exports = router;
 

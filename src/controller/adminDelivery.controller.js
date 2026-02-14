@@ -216,3 +216,50 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// 🔹 Get Delivery Partner By ID
+exports.getDeliveryById = async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, name, email, phone, vehicle_type, vehicle_number, profile_id, status FROM delivery_partners WHERE id = $1",
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+// 🔹 Edit Delivery Profile
+exports.editDeliveryProfile = async (req, res) => {
+  try {
+    const { name, phone, vehicle_type, vehicle_number } = req.body;
+
+    const result = await pool.query(
+      `UPDATE delivery_partners 
+       SET name=$1, phone=$2, vehicle_type=$3, vehicle_number=$4
+       WHERE id=$5 RETURNING *`,
+      [name, phone, vehicle_type, vehicle_number, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
+    }
+
+    res.json({
+      message: "Profile Updated Successfully",
+      data: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};

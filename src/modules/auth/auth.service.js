@@ -71,25 +71,27 @@ if (deliveryResult.rowCount > 0) {
   return { id: partner.id, role: "delivery_partner" };
 }
 //vendor check
+
+//vendor check
 const vendorResult = await pool.query(
     "SELECT id, password_hash, is_approved FROM vendors WHERE email = $1",
     [identifier]
-  );
+);
 
-  console.log("Vendor rowCount:", vendorResult.rowCount);
-
-  if (vendorResult.rowCount === 0) {
+if (vendorResult.rowCount === 0) {
     throw new Error("User not found");
-  }
+}
 
-  const vendor = vendorResult.rows[0];
+const vendor = vendorResult.rows[0];
 
-  if (!vendor.is_approved) {
+console.log("Vendor approval status:", vendor.is_approved);
+
+if (vendor.is_approved !== "approved") {
     throw new Error("Admin approval pending");
-  }
+}
 
-  const match = await comparePassword(password, vendor.password_hash);
-  if (!match) throw new Error("Invalid credentials");
+const match = await comparePassword(password, vendor.password_hash);
+if (!match) throw new Error("Invalid credentials");
 
-  return { id: vendor.id, role: "vendor" };
+return { id: vendor.id, role: "vendor" };
 };
