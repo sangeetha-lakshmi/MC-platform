@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const pool = require("../config/database"); // ⚠️ adjust path if needed
+const pool = require("../config/database"); 
 const adminService = require("../modules/admin/admin.service");
 
 /* ================= ADMIN LOGIN ================= */
