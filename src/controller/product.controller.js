@@ -138,34 +138,13 @@ exports.addProductByAdmin = async (req, res) => {
     }
 const shopType = vendorResult.rows[0].business_type;
 // Get category_id from categories table
-const categoryResult = await db.query(
-  "SELECT id FROM app_data.categories WHERE name = $1",
-  [shopType]
-);
 
-if (categoryResult.rowCount === 0) {
-  throw new Error("Invalid shop category");
-}
-
-const categoryId = categoryResult.rows[0].id;
 
 // Validate subcategory belongs to this category
 if (!subcategory) {
   throw new Error("Subcategory is required");
 }
 
-const subResult = await db.query(
-  `SELECT id 
-   FROM app_data.sub_categories 
-   WHERE id = $1 
-   AND category_id = $2 
-   AND is_active = true`,
-  [subcategory, categoryId]
-);
-
-if (subResult.rowCount === 0) {
-  throw new Error("Invalid subcategory for this shop category");
-}
 
 
     /* ===============================

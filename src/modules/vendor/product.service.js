@@ -6,12 +6,33 @@ const db = require("../../config/database");
 
 // get all products for logged-in vendor (ALL products)
 exports.getAllProducts = async (vendorId) => {
-  const { rows } = await db.query(
-    "SELECT * FROM products WHERE vendor_id = $1 ORDER BY created_at DESC",
+  const result = await db.query(
+    `SELECT 
+        id,
+        vendor_id,
+        name,
+        description,
+        image,
+        price,
+        final_price,
+        stock,
+        is_live,
+        preparing_minutes,
+        food_type,
+        category,
+        subcategory,
+        created_at,
+        updated_at
+     FROM products
+     WHERE vendor_id = $1
+     ORDER BY id DESC`,
     [vendorId]
   );
-  return rows;
+
+  return result.rows;
 };
+
+
 
 // get single product by id (vendor edit)
 exports.createProduct = async (vendorId, data) => {
