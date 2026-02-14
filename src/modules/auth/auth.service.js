@@ -22,7 +22,7 @@ exports.login = async ({ email, phone, password }) => {
 
     return { id: admin.id, role: "admin" };
   }
-
+//customer check
   const identifier = email || phone;
 
   const customerResult = await pool.query(
@@ -41,10 +41,39 @@ exports.login = async ({ email, phone, password }) => {
 
     return { id: customer.id, role: "customer" };
   }
+/* ================= DELIVERY PARTNER CHECK ================= */
+// 4️⃣ DELIVERY PARTNER
+const deliveryResult = await pool.query(
+  `SELECT id, password_hash, is_approved, is_active
+   FROM delivery_partners
+   WHERE email = $1 OR phone = $1 OR profile_id = $1`,
+  [identifier]
+);
 
-  const vendorResult = await pool.query(
+if (deliveryResult.rowCount > 0) {
+  const partner = deliveryResult.rows[0];
+
+  if (partner.is_approved !== "approved") {
+    throw new Error("Admin approval pending");
+  }
+
+  if (!partner.is_active) {
+    throw new Error("Account is inactive");
+  }
+
+  if (!partner.password_hash) {
+    throw new Error("Password not set by admin yet");
+  }
+
+  const match = await comparePassword(password, partner.password_hash);
+  if (!match) throw new Error("Invalid credentials");
+
+  return { id: partner.id, role: "delivery_partner" };
+}
+//vendor check
+const vendorResult = await pool.query(
     "SELECT id, password_hash, is_approved FROM vendors WHERE email = $1",
-    [email]
+    [identifier]
   );
 
   console.log("Vendor rowCount:", vendorResult.rowCount);

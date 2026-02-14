@@ -103,36 +103,131 @@ exports.addProductByAdmin = async (req, res) => {
     const {
       name,
       description,
+      image,
       price,
-      discount,
+      final_price,
       stock,
-      category,
+      preparing_minutes,
+      food_type,
       subcategory
     } = req.body;
+
+    /* ===============================
+       BASIC VALIDATION
+    ================================ */
+
+    if (!name) throw new Error("Product name is required");
+    if (!price) throw new Error("Original price is required");
+    if (!final_price) throw new Error("Final price is required");
+
+    if (Number(final_price) > Number(price)) {
+      throw new Error("Final price cannot be greater than original price");
+    }
+
+    /* ===============================
+       FETCH SHOP TYPE
+    ================================ */
+
+    const vendorResult = await db.query(
+      `SELECT business_type FROM vendors WHERE id = $1`,
+      [vendorId]
+    );
+
+    if (vendorResult.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+const shopType = vendorResult.rows[0].business_type;
+// Get category_id from categories table
+const categoryResult = await db.query(
+  "SELECT id FROM app_data.categories WHERE name = $1",
+  [shopType]
+);
+
+if (categoryResult.rowCount === 0) {
+  throw new Error("Invalid shop category");
+}
+
+const categoryId = categoryResult.rows[0].id;
+
+// Validate subcategory belongs to this category
+if (!subcategory) {
+  throw new Error("Subcategory is required");
+}
+
+const subResult = await db.query(
+  `SELECT id 
+   FROM app_data.sub_categories 
+   WHERE id = $1 
+   AND category_id = $2 
+   AND is_active = true`,
+  [subcategory, categoryId]
+);
+
+if (subResult.rowCount === 0) {
+  throw new Error("Invalid subcategory for this shop category");
+}
+
+
+    /* ===============================
+       FOOD vs NON-FOOD LOGIC
+    ================================ */
+
+    if (shopType === "Food") {
+
+      if (!preparing_minutes) {
+        throw new Error("Preparing minutes required for food items");
+      }
+
+      finalPreparingMinutes = preparing_minutes;
+      finalFoodType = food_type || null;
+      finalStock = 0; // not used
+
+    } else {
+
+      if (stock === undefined || stock === null) {
+        throw new Error("Stock is required for non-food items");
+      }
+
+      finalStock = stock;
+      finalPreparingMinutes = 0;
+      finalFoodType = null;
+    }
+
+    /* ===============================
+       INSERT PRODUCT
+    ================================ */
 
     const { rows } = await db.query(
       `INSERT INTO products (
         vendor_id,
         name,
         description,
+        image,
         price,
-        discount,
+        final_price,
         stock,
         is_live,
+        preparing_minutes,
+        food_type,
         category,
-        subcategory
+        subcategory,
+        created_at,
+        updated_at
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW())
       RETURNING *`,
       [
         vendorId,
         name,
-        description,
+        description || null,
+        image || "image.jpg",
         price,
-        discount,
-        stock,
+        final_price,
+        finalStock,
         true,
-        category,
+        finalPreparingMinutes,
+        finalFoodType,
+        shopType,
         subcategory
       ]
     );
@@ -140,10 +235,11 @@ exports.addProductByAdmin = async (req, res) => {
     res.status(201).json(rows[0]);
 
   } catch (error) {
-    console.error("Admin Add Product Error:", error);
-    res.status(500).json({ message: "Error adding product" });
+    console.error("Admin Add Product Error:", error.message);
+    res.status(400).json({ message: error.message });
   }
 };
+
 
 exports.updateProductByAdmin = async (req, res) => {
   try {
@@ -177,7 +273,7 @@ exports.updateProductByAdmin = async (req, res) => {
         name,
         description,
         price,
-        discount,
+        final_price,
         stock,
         category,
         subcategory,

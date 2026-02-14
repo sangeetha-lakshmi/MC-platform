@@ -35,6 +35,8 @@ app.use("/api/shop", orderRoutes);
 
 
 /* OTHER ROUTES */
+app.use("/api/auth", require("./routes/auth.routes"));
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
