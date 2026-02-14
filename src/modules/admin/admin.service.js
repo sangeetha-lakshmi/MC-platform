@@ -163,6 +163,8 @@ const getShopProducts = async (vendorId) => {
         preparing_minutes,
         food_type,
         category,
+        preparing_minutes,
+        food_type,
         subcategory
      FROM products
      WHERE vendor_id = $1

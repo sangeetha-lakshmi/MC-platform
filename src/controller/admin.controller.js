@@ -176,21 +176,20 @@ const getShopById = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      `
-      SELECT 
-        v.id,
-        v.shop_name,
-        v.email,
-        v.business_type,
-        COUNT(p.id) AS product_count
-      FROM vendors v
-      LEFT JOIN products p
-        ON v.id = p.vendor_id
-      WHERE v.id = $1
-      GROUP BY v.id
-      `,
-      [id]
-    );
+  `
+  SELECT 
+    v.id,
+    v.shop_name,
+    v.email,
+    v.business_type AS category,
+    c.id AS category_id
+  FROM vendors v
+  LEFT JOIN app_data.categories c
+    ON c.name = v.business_type
+  WHERE v.id = $1
+  `,
+  [id]
+);
 
     res.json(result.rows[0]);
 
