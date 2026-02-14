@@ -107,25 +107,37 @@ const getCategoryCount = async () => {
 };
 
 // 2️⃣ Get Shops (All or Filtered)
+// 2️⃣ Get Shops (All or Filtered) WITH PRODUCT COUNT
 const getShops = async (category) => {
   let query = `
-    SELECT id, shop_name, email, business_type
-    FROM vendors
-    WHERE is_approved = 'approved'
+    SELECT 
+      v.id,
+      v.shop_name,
+      v.email,
+      v.business_type,
+      COUNT(p.id) AS product_count
+    FROM vendors v
+    LEFT JOIN products p 
+      ON v.id = p.vendor_id
+    WHERE v.is_approved = 'approved'
   `;
 
   const values = [];
 
   if (category) {
-    query += ` AND business_type = $1`;
+    query += ` AND v.business_type = $1`;
     values.push(category);
   }
 
-  query += ` ORDER BY created_at DESC`;
+  query += `
+    GROUP BY v.id
+    ORDER BY v.created_at DESC
+  `;
 
-const result = await db.query(query, values);
+  const result = await db.query(query, values);
   return result.rows;
 };
+
 
 // 3️⃣ Get Single Shop
 const getShopById = async (id) => {

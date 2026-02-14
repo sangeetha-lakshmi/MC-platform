@@ -1,7 +1,9 @@
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+const pool = require("../config/database"); // ⚠️ adjust path if needed
 const adminService = require("../modules/admin/admin.service");
 
-/* ✅ Admin Login */
+/* ================= ADMIN LOGIN ================= */
 const adminLogin = async (req, res) => {
   try {
     const admin = await adminService.loginAdmin(req.body);
@@ -18,7 +20,7 @@ const adminLogin = async (req, res) => {
   }
 };
 
-/* ✅ Get Pending Vendors */
+/* ================= GET PENDING VENDORS ================= */
 const getPendingVendors = async (req, res) => {
   try {
     const vendors = await adminService.getPendingVendors();
@@ -28,7 +30,7 @@ const getPendingVendors = async (req, res) => {
   }
 };
 
-/* ✅ Approve Vendor */
+/* ================= APPROVE VENDOR ================= */
 const approveVendor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,7 +41,7 @@ const approveVendor = async (req, res) => {
   }
 };
 
-/* ❌ Decline Vendor */
+/* ================= DECLINE VENDOR ================= */
 const declineVendor = async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -54,7 +56,7 @@ const declineVendor = async (req, res) => {
   }
 };
 
-/* ✅ Get Approved Vendors */
+/* ================= GET APPROVED VENDORS ================= */
 const getApprovedVendors = async (req, res) => {
   try {
     const vendors = await adminService.getApprovedVendors();
@@ -69,29 +71,7 @@ const getApprovedVendors = async (req, res) => {
   }
 };
 
-/* ✅ Change Admin Password */
-const changeAdminPassword = async (req, res) => {
-  try {
-    const adminId = req.user.id;
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: "All fields are required" });
-    }
-
-    await adminService.changePassword(
-      adminId,
-      currentPassword,
-      newPassword
-    );
-
-    res.json({ message: "Password changed successfully ✅" });
-  } catch (error) {
-    console.error("Change Password Error:", error.message);
-    res.status(400).json({ error: error.message });
-  }
-};
-/* ---------------- GET DECLINED VENDORS ---------------- */
+/* ================= GET DECLINED VENDORS ================= */
 const getDeclinedVendors = async (req, res) => {
   try {
     const vendors = await adminService.getDeclinedVendors();
@@ -105,9 +85,71 @@ const getDeclinedVendors = async (req, res) => {
   }
 };
 
+/* ================= GET ADMIN PROFILE ================= */
+const getAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user.id;
 
+    const result = await pool.query(
+      "SELECT id, name, email, phone FROM admin_users WHERE id = $1",
+      [adminId]
+    );
 
-// 1️⃣ Category Count
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Get Profile Error:", err.message);
+    res.status(500).json({ message: "Error fetching profile" });
+  }
+};
+
+/* ================= UPDATE ADMIN PROFILE ================= */
+const updateAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { name, email, phone, currentPassword, newPassword } = req.body;
+
+    // 1️⃣ Update basic profile
+    await pool.query(
+      `UPDATE admin_users 
+       SET name=$1, email=$2, phone=$3 
+       WHERE id=$4`,
+      [name, email, phone, adminId]
+    );
+
+    // 2️⃣ If password fields are provided
+    if (currentPassword && newPassword) {
+
+      const result = await pool.query(
+        "SELECT password_hash FROM admin_users WHERE id=$1",
+        [adminId]
+      );
+
+      const isMatch = await bcrypt.compare(
+        currentPassword,
+        result.rows[0].password_hash
+      );
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password incorrect" });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await pool.query(
+        "UPDATE admin_users SET password_hash=$1 WHERE id=$2",
+        [hashedPassword, adminId]
+      );
+    }
+
+    res.json({ message: "Profile updated successfully ✅" });
+
+  } catch (err) {
+    console.error("Update Profile Error:", err.message);
+    res.status(500).json({ message: "Update Failed" });
+  }
+};
+
+/* ================= CATEGORY COUNT ================= */
 const getCategoryCount = async (req, res) => {
   try {
     const data = await adminService.getCategoryCount();
@@ -117,7 +159,7 @@ const getCategoryCount = async (req, res) => {
   }
 };
 
-// 2️⃣ Get Shops
+/* ================= GET SHOPS ================= */
 const getShops = async (req, res) => {
   try {
     const { category } = req.query;
@@ -128,17 +170,38 @@ const getShops = async (req, res) => {
   }
 };
 
-// 3️⃣ Get Single Shop
+/* ================= GET SINGLE SHOP ================= */
 const getShopById = async (req, res) => {
   try {
-    const shop = await adminService.getShopById(req.params.id);
-    res.json(shop);
-  } catch {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT 
+        v.id,
+        v.shop_name,
+        v.email,
+        v.business_type,
+        COUNT(p.id) AS product_count
+      FROM vendors v
+      LEFT JOIN products p
+        ON v.id = p.vendor_id
+      WHERE v.id = $1
+      GROUP BY v.id
+      `,
+      [id]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error("Get Shop Error:", error.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// 4️⃣ Get Shop Products
+
+/* ================= GET SHOP PRODUCTS ================= */
 const getShopProducts = async (req, res) => {
   try {
     const products = await adminService.getShopProducts(req.params.id);
@@ -148,7 +211,7 @@ const getShopProducts = async (req, res) => {
   }
 };
 
-// 5️⃣ Toggle Product
+/* ================= TOGGLE PRODUCT ================= */
 const toggleProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -156,7 +219,7 @@ const toggleProduct = async (req, res) => {
     const updatedProduct = await adminService.toggleProduct(id);
 
     res.json({
-      message: "Product status updated successfully",
+      message: "Product status updated successfully ✅",
       data: updatedProduct
     });
 
@@ -167,17 +230,16 @@ const toggleProduct = async (req, res) => {
 };
 
 
-  
-
-
+/* ================= EXPORTS ================= */
 module.exports = {
-adminLogin,
+  adminLogin,
   getPendingVendors,
   approveVendor,
   declineVendor,
   getApprovedVendors,
-  getDeclinedVendors, 
-  changeAdminPassword,
+  getDeclinedVendors,
+  getAdminProfile,
+  updateAdminProfile,
   getCategoryCount,
   getShops,
   getShopById,
