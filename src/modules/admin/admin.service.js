@@ -160,6 +160,8 @@ const getShopProducts = async (vendorId) => {
         final_price,
         stock,
         is_live,
+        preparing_minutes,
+        food_type,
         category,
         subcategory
      FROM products
