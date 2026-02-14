@@ -4,52 +4,37 @@ const router = express.Router();
 const adminController = require("../controller/admin.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-
-
-// ✅ Admin login (public)
+// ✅ Public Route
 router.post("/login", adminController.adminLogin);
 
+// 🔐 All routes below require auth
 router.use(authMiddleware);
-// 🔐 Protected routes
-router.get(
-  "/pending",
-  authMiddleware,
-  adminController.getPendingVendors
-);
 
-router.put(
-  "/approve/:id",
-  authMiddleware,
-  adminController.approveVendor
-);
+// Vendors
+router.get("/pending", adminController.getPendingVendors);
+router.put("/approve/:id", adminController.approveVendor);
+router.put("/vendors/:vendorId/decline", adminController.declineVendor);
+router.get("/vendors/approved", adminController.getApprovedVendors);
+router.get("/vendors/declined", adminController.getDeclinedVendors);
 
-router.put(
-  "/vendors/:vendorId/decline",
-  authMiddleware,
-  adminController.declineVendor
-);
+// Profile
+router.get("/profile", adminController.getAdminProfile);
+router.put("/profile", adminController.updateAdminProfile);
 
-router.get(
-  "/vendors/approved",
-  authMiddleware,
-  adminController.getApprovedVendors
-);
 
-router.put(
-  "/change-password",
-  authMiddleware,
-  adminController.changeAdminPassword
-);
-router.get("/category-count", adminController.getCategoryCount);
+// Shops
 router.get("/shops", adminController.getShops);
 router.get("/shops/:id", adminController.getShopById);
 router.get("/shops/:id/products", adminController.getShopProducts);
+
+// Products
 router.patch("/products/:id/toggle", adminController.toggleProduct);
-router.get("/vendors/declined", adminController.getDeclinedVendors);
 
+// Dashboard
+router.get("/category-count", adminController.getCategoryCount);
 
-// debug
+// Debug
 console.log("Admin Controller Loaded:", Object.keys(adminController));
 
 module.exports = router;
-//push
+

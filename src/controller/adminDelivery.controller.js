@@ -4,20 +4,43 @@ const generatePassword = require("../utils/generatePassword");
 const generateProfileId = require("../utils/generateDeliveryid");
 
 
-
-// 🔹 1. Get All Delivery Partners
+// 🔹 1. Get Delivery Partners (With Status Filter)
 exports.getAlldelivery_partners = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM delivery_partners ORDER BY created_at DESC"
-    );
+    const { status } = req.query;
 
-    res.json(result.rows);
+    let query = `
+      SELECT *
+      FROM delivery_partners
+    `;
+    let values = [];
+
+    const validStatus = ["approved", "pending", "declined"];
+
+    if (status && validStatus.includes(status)) {
+      // If specific status provided
+      query += " WHERE is_approved = $1";
+      values.push(status);
+    } else {
+      // Default ALL view → exclude declined
+      query += " WHERE is_approved != 'declined'";
+    }
+
+    query += " ORDER BY created_at DESC";
+
+    const result = await pool.query(query, values);
+
+    res.json({
+      total: result.rows.length,
+      data: result.rows,
+    });
 
   } catch (error) {
+    console.error("Get Deliveries Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 // 🔹 2. Approve Delivery
@@ -25,7 +48,6 @@ exports.approveDelivery = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get delivery name first
     const result = await pool.query(
       "SELECT name FROM delivery_partners WHERE id = $1",
       [id]
@@ -54,53 +76,96 @@ exports.approveDelivery = async (req, res) => {
     res.json({
       message: "Delivery Approved Successfully",
       profileId,
-      tempPassword
+      tempPassword,
     });
 
   } catch (error) {
+    console.error("Approve Delivery Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 
- 
-// 🔹 Edit Profile ID
-exports.editProfileId = async (req, res) => {
+
+// 🔹 3. Decline Delivery
+exports.declineDelivery = async (req, res) => {
   try {
     const { id } = req.params;
-    const { profile_id } = req.body;
-
-    // Check if profile_id already exists
-    const existing = await pool.query(
-      "SELECT * FROM delivery_partners WHERE profile_id = $1",
-      [profile_id]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(400).json({
-        message: "Profile ID already exists. Choose another."
-      });
-    }
 
     await pool.query(
       `UPDATE delivery_partners
-       SET profile_id = $1
-       WHERE id = $2`,
-      [profile_id, id]
+       SET is_approved = 'declined',
+           is_active = false
+       WHERE id = $1`,
+      [id]
     );
 
     res.json({
-      message: "Profile ID updated successfully"
+      message: "Delivery Declined Successfully",
     });
 
   } catch (error) {
+    console.error("Decline Delivery Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 
 
-// 🔹 3. Delete Delivery
+// 🔹 4. Edit Profile ID
+// 🔹 4. Edit Profile ID + Change Password
+exports.editProfileId = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { profile_id, newPassword } = req.body;
+
+    // 1️⃣ Check profile_id uniqueness (if provided)
+    if (profile_id) {
+      const existing = await pool.query(
+        "SELECT id FROM delivery_partners WHERE profile_id = $1 AND id != $2",
+        [profile_id, id]
+      );
+
+      if (existing.rows.length > 0) {
+        return res.status(400).json({
+          message: "Profile ID already exists. Choose another.",
+        });
+      }
+
+      await pool.query(
+        `UPDATE delivery_partners
+         SET profile_id = $1
+         WHERE id = $2`,
+        [profile_id, id]
+      );
+    }
+
+    // 2️⃣ If new password provided → hash & update
+    if (newPassword) {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await pool.query(
+        `UPDATE delivery_partners
+         SET password_hash = $1
+         WHERE id = $2`,
+        [hashedPassword, id]
+      );
+    }
+
+    res.json({
+      message: "Delivery profile updated successfully ✅",
+    });
+
+  } catch (error) {
+    console.error("Edit Profile Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+
+// 🔹 5. Delete Delivery (Hard Delete)
 exports.deleteDelivery = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,15 +175,19 @@ exports.deleteDelivery = async (req, res) => {
       [id]
     );
 
-    res.json({ message: "Delivery profile deleted" });
+    res.json({
+      message: "Delivery profile deleted",
+    });
 
   } catch (error) {
+    console.error("Delete Delivery Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 
-// 🔹 4. Reset Password
+
+// 🔹 6. Reset Password
 exports.resetPassword = async (req, res) => {
   try {
     const { id } = req.params;
@@ -137,6 +206,7 @@ exports.resetPassword = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Reset Password Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
