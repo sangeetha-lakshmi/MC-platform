@@ -45,7 +45,7 @@ app.use("/api/delivery", deliveryRoutes);
 app.use("/api/common", commonCategoryRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/admin/delivery_partners", adminDeliveryRoutes);
-app.use("/api/admin/deliveries", adminDeliveryRoutes);
+
 
 /* HEALTH */
 app.get("/", (req, res) => {

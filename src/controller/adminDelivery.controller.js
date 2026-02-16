@@ -4,25 +4,22 @@ const generatePassword = require("../utils/generatePassword");
 const generateProfileId = require("../utils/generateDeliveryid");
 
 
-// 🔹 1. Get Delivery Partners (With Status Filter)
+/* =====================================================
+   1️⃣ GET ALL DELIVERY PARTNERS (WITH STATUS FILTER)
+===================================================== */
 exports.getAlldelivery_partners = async (req, res) => {
   try {
     const { status } = req.query;
 
-    let query = `
-      SELECT *
-      FROM delivery_partners
-    `;
+    let query = `SELECT * FROM delivery_partners`;
     let values = [];
 
     const validStatus = ["approved", "pending", "declined"];
 
     if (status && validStatus.includes(status)) {
-      // If specific status provided
       query += " WHERE is_approved = $1";
       values.push(status);
     } else {
-      // Default ALL view → exclude declined
       query += " WHERE is_approved != 'declined'";
     }
 
@@ -42,22 +39,23 @@ exports.getAlldelivery_partners = async (req, res) => {
 };
 
 
-
-// 🔹 2. Approve Delivery
+/* =====================================================
+   2️⃣ APPROVE DELIVERY PARTNER
+===================================================== */
 exports.approveDelivery = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const result = await pool.query(
+    const userCheck = await pool.query(
       "SELECT name FROM delivery_partners WHERE id = $1",
       [id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Delivery not found" });
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
     }
 
-    const name = result.rows[0].name;
+    const name = userCheck.rows[0].name;
 
     const profileId = generateProfileId(name);
     const tempPassword = generatePassword();
@@ -74,9 +72,9 @@ exports.approveDelivery = async (req, res) => {
     );
 
     res.json({
-      message: "Delivery Approved Successfully",
+      message: "Delivery Approved Successfully ✅",
       profileId,
-      tempPassword,
+      tempPassword
     });
 
   } catch (error) {
@@ -86,11 +84,21 @@ exports.approveDelivery = async (req, res) => {
 };
 
 
-
-// 🔹 3. Decline Delivery
+/* =====================================================
+   3️⃣ DECLINE DELIVERY PARTNER
+===================================================== */
 exports.declineDelivery = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const userCheck = await pool.query(
+      "SELECT id FROM delivery_partners WHERE id = $1",
+      [id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Delivery Partner Not Found" });
+    }
 
     await pool.query(
       `UPDATE delivery_partners
@@ -101,7 +109,7 @@ exports.declineDelivery = async (req, res) => {
     );
 
     res.json({
-      message: "Delivery Declined Successfully",
+      message: "Delivery Declined Successfully ❌"
     });
 
   } catch (error) {
@@ -111,92 +119,67 @@ exports.declineDelivery = async (req, res) => {
 };
 
 
-
-// 🔹 4. Edit Profile ID
-exports.editProfileId = async (req, res) => {
+/* =====================================================
+   4️⃣ EDIT DELIVERY PASSWORD
+===================================================== */
+exports.editDeliveryPassword = async (req, res) => {
   try {
     const { id } = req.params;
-    const { profile_id, tempPassword } = req.body;
+    const { newPassword } = req.body;
 
-    // 🔎 Check profile ID duplicate (if provided)
-    if (profile_id) {
-      const existing = await pool.query(
-        "SELECT id FROM delivery_partners WHERE profile_id = $1 AND id != $2",
-        [profile_id, id]
-      );
+    console.log("ID RECEIVED:", id);
+    console.log("NEW PASSWORD:", newPassword);
 
-      if (existing.rows.length > 0) {
-        return res.status(400).json({
-          message: "Profile ID already exists. Choose another.",
-        });
-      }
-    }
-
-    let query = `UPDATE delivery_partners SET `;
-    let values = [];
-    let updates = [];
-    let index = 1;
-
-    if (profile_id) {
-      updates.push(`profile_id = $${index++}`);
-      values.push(profile_id);
-    }
-
-    if (tempPassword) {
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
-      updates.push(`password_hash = $${index++}`);
-      values.push(hashedPassword);
-    }
-
-    if (updates.length === 0) {
+    if (!newPassword) {
       return res.status(400).json({
-        message: "Nothing to update",
+        message: "New password is required"
       });
     }
 
-    query += updates.join(", ");
-    query += ` WHERE id = $${index}`;
-    values.push(id);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await pool.query(query, values);
-
-    res.json({
-      message: "Delivery profile updated successfully",
-    });
-
-  } catch (error) {
-    console.error("Edit Profile Error:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-
-// 🔹 5. Delete Delivery (Hard Delete)
-exports.deleteDelivery = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    await pool.query(
-      "DELETE FROM delivery_partners WHERE id = $1",
-      [id]
+    const result = await pool.query(
+      "UPDATE delivery_partners SET password_hash = $1 WHERE id = $2 RETURNING id",
+      [hashedPassword, id]
     );
 
+    console.log("Rows Updated:", result.rowCount);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        message: "No delivery partner found with this ID"
+      });
+    }
+
     res.json({
-      message: "Delivery profile deleted",
+      message: "Password Updated Successfully ✅"
     });
 
   } catch (error) {
-    console.error("Delete Delivery Error:", error);
+    console.error("Edit Password Error:", error);
     res.status(500).json({ error: error.message });
   }
 };
 
 
 
-// 🔹 6. Reset Password
+/* =====================================================
+   5️⃣ RESET DELIVERY PASSWORD
+===================================================== */
 exports.resetPassword = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const userCheck = await pool.query(
+      "SELECT id FROM delivery_partners WHERE id = $1",
+      [id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        message: "Delivery Partner Not Found"
+      });
+    }
 
     const newPassword = generatePassword();
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -207,8 +190,8 @@ exports.resetPassword = async (req, res) => {
     );
 
     res.json({
-      message: "Password Reset Successful",
-      newPassword,
+      message: "Password Reset Successful 🔄",
+      newPassword
     });
 
   } catch (error) {
@@ -217,49 +200,71 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-// 🔹 Get Delivery Partner By ID
+
+/* =====================================================
+   6️⃣ DELETE DELIVERY PARTNER
+===================================================== */
+exports.deleteDelivery = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const userCheck = await pool.query(
+      "SELECT id FROM delivery_partners WHERE id = $1",
+      [id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({
+        message: "Delivery Partner Not Found"
+      });
+    }
+
+    await pool.query(
+      "DELETE FROM delivery_partners WHERE id = $1",
+      [id]
+    );
+
+    res.json({
+      message: "Delivery Profile Deleted 🗑️"
+    });
+
+  } catch (error) {
+    console.error("Delete Delivery Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+/* =====================================================
+   7️⃣ GET DELIVERY PARTNER BY ID
+===================================================== */
 exports.getDeliveryById = async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, email, phone, vehicle_type, vehicle_number, profile_id, status FROM delivery_partners WHERE id = $1",
+      `SELECT id, name, email, phone,
+              vehicle_type, vehicle_number,
+              profile_id, is_approved, is_active
+       FROM delivery_partners
+       WHERE id = $1`,
       [req.params.id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Delivery Partner Not Found" });
+      return res.status(404).json({
+        message: "Delivery Partner Not Found"
+      });
     }
 
     res.json(result.rows[0]);
+
   } catch (error) {
-    console.error(error);
+    console.error("Get Delivery By ID Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
 
 
-// 🔹 Edit Delivery Profile
-exports.editDeliveryProfile = async (req, res) => {
-  try {
-    const { name, phone, vehicle_type, vehicle_number } = req.body;
 
-    const result = await pool.query(
-      `UPDATE delivery_partners 
-       SET name=$1, phone=$2, vehicle_type=$3, vehicle_number=$4
-       WHERE id=$5 RETURNING *`,
-      [name, phone, vehicle_type, vehicle_number, req.params.id]
-    );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Delivery Partner Not Found" });
-    }
 
-    res.json({
-      message: "Profile Updated Successfully",
-      data: result.rows[0]
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
+console.log("Admin Delivery Controller Loaded:", Object.keys(module.exports));
