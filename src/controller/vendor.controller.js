@@ -23,20 +23,20 @@ exports.registerVendor = async (req, res) => {
       license_doc
     } = req.body;
 
-    if (
-      !shop_name ||
-      !owner_name ||
-      !email ||
-      !phone ||
-      !password ||
-      !latitude || !longitude ||
-      !business_type
-    ) {
-      return res.status(400).json({
-        error:
-          "shop_name, owner_name, email, phone, password, business_type are required, latitude and longitude are required"
-      });
-    }
+   if (
+  !shop_name ||
+  !owner_name ||
+  !email ||
+  !phone ||
+  !password ||
+  !business_type
+) {
+  return res.status(400).json({
+    error:
+      "shop_name, owner_name, email, phone, password, business_type are required"
+  });
+}
+
 
     // ✅ NEW: check duplicate email (SAFE FIX)
     const existingVendor = await vendorService.findVendorByEmail(email);
