@@ -2,41 +2,69 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../config/database");
 const deliveryController = require("../controller/delivery.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
+/* ======================================================
+   DELIVERY REQUEST CREATION (CUSTOMER)
+====================================================== */
 
-router.post("/request", async (req, res) => {
-  const {
-    user_id,
-    pickup_lat,
-    pickup_lng,
-    pickup_instructions,
-    receiver_name,
-    receiver_phone,
-    drop_lat,
-    drop_lng,
-    drop_address_text,
-    package_type,
-    weight,
-    item_value,
-    is_fragile,
-    payment_method
-  } = req.body;
+router.post("/request", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id; // 🔒 secure user from JWT
 
-  const result = await pool.query(
-    `INSERT INTO delivery_requests
-    (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-     drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-    RETURNING *`,
-    [user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-     drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method]
-  );
+    const {
+      pickup_lat,
+      pickup_lng,
+      pickup_instructions,
+      receiver_name,
+      receiver_phone,
+      drop_lat,
+      drop_lng,
+      drop_address_text,
+      package_type,
+      weight,
+      item_value,
+      is_fragile,
+      payment_method
+    } = req.body;
 
-  res.json(result.rows[0]);
+    const result = await pool.query(
+      `INSERT INTO delivery_requests
+      (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
+       drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING *`,
+      [
+        userId,
+        pickup_lat,
+        pickup_lng,
+        pickup_instructions,
+        receiver_name,
+        receiver_phone,
+        drop_lat,
+        drop_lng,
+        drop_address_text,
+        package_type,
+        weight,
+        item_value,
+        is_fragile,
+        payment_method
+      ]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("REQUEST ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
-// Get delivery details
-router.get("/request/:id", async (req, res) => {
 
+/* ======================================================
+   GET DELIVERY REQUEST
+====================================================== */
+
+router.get("/request/:id", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -46,31 +74,66 @@ router.get("/request/:id", async (req, res) => {
     );
 
     res.json(result.rows[0]);
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error("GET REQUEST ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-// Driver accepts order
-router.put("/accept/:id", async (req, res) => {
+
+/* ======================================================
+   DRIVER ACCEPT ORDER
+====================================================== */
+
+router.put("/accept/:id", authMiddleware, async (req, res) => {
   try {
+
+    if (req.user.role !== "delivery_partner") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const { id } = req.params;
 
     await pool.query(
-      "UPDATE delivery_requests SET status = 'DRIVER_ASSIGNED' WHERE request_id = $1",
+      `UPDATE delivery_requests 
+       SET status = 'DRIVER_ASSIGNED'
+       WHERE request_id = $1`,
       [id]
     );
 
     res.json({ message: "Driver Assigned" });
+
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("ACCEPT ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-// Update delivery status
-router.put("/status/:id", async (req, res) => {
+
+/* ======================================================
+   UPDATE DELIVERY STATUS
+====================================================== */
+
+router.put("/status/:id", authMiddleware, async (req, res) => {
   try {
+
+    if (req.user.role !== "delivery_partner") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
     const { id } = req.params;
     const { status } = req.body;
+
+    const allowedStatus = [
+      "PENDING",
+      "DRIVER_ASSIGNED",
+      "PICKED_UP",
+      "DELIVERED",
+      "CANCELLED"
+    ];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
 
     await pool.query(
       "UPDATE delivery_requests SET status = $1 WHERE request_id = $2",
@@ -78,21 +141,42 @@ router.put("/status/:id", async (req, res) => {
     );
 
     res.json({ message: "Status Updated" });
+
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("STATUS UPDATE ERROR:", err);
+    res.status(500).json({ error: err.message });
   }
 });
-// Get all delivery_partners of a user
-router.get("/profile/:id", async (req, res) => {
+
+/* ======================================================
+   DELIVERY ACTIVE TOGGLE
+====================================================== */
+
+router.patch(
+  "/toggle-active",
+  authMiddleware,
+  deliveryController.toggleActiveStatus
+);
+
+/* ======================================================
+   GET DELIVERY PROFILE (SELF ONLY)
+====================================================== */
+
+router.get("/profile", authMiddleware, async (req, res) => {
   try {
-    const { id } = req.params;
+
+    if (req.user.role !== "delivery_partner") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const deliveryId = req.user.id;
 
     const result = await pool.query(
       `SELECT id, name, email, phone, vehicle_type, vehicle_number,
               profile_id, is_approved, is_active, created_at
        FROM delivery_partners
        WHERE id = $1`,
-      [id]
+      [deliveryId]
     );
 
     if (result.rows.length === 0) {
@@ -107,10 +191,18 @@ router.get("/profile/:id", async (req, res) => {
   }
 });
 
-// Update Delivery Partner Profile
-router.put("/profile/:id", async (req, res) => {
+/* ======================================================
+   UPDATE DELIVERY PROFILE (SELF ONLY)
+====================================================== */
+
+router.put("/profile", authMiddleware, async (req, res) => {
   try {
-    const { id } = req.params;
+
+    if (req.user.role !== "delivery_partner") {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const deliveryId = req.user.id;
     const { name, phone, vehicle_type, vehicle_number } = req.body;
 
     const result = await pool.query(
@@ -122,7 +214,7 @@ router.put("/profile/:id", async (req, res) => {
        WHERE id = $5
        RETURNING id, name, email, phone, vehicle_type, vehicle_number,
                  profile_id, is_approved, is_active, created_at`,
-      [name, phone, vehicle_type, vehicle_number, id]
+      [name, phone, vehicle_type, vehicle_number, deliveryId]
     );
 
     if (result.rows.length === 0) {
@@ -140,10 +232,20 @@ router.put("/profile/:id", async (req, res) => {
   }
 });
 
+/* ======================================================
+   REGISTER DELIVERY
+====================================================== */
 
 router.post("/register", deliveryController.registerDeliveryPartner);
 
-router.put("/change-password/:id", deliveryController.changePassword);
+/* ======================================================
+   CHANGE PASSWORD (SELF ONLY)
+====================================================== */
+
+router.put(
+  "/change-password",
+  authMiddleware,
+  deliveryController.changePassword
+);
 
 module.exports = router;
-
