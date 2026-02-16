@@ -12,10 +12,19 @@ const registerDeliveryPartner = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(400).json({
-      message: err.message
+
+  // PostgreSQL duplicate key error
+  if (err.code === "23505") {
+    return res.status(400).json({
+      message: "Duplicate value detected (Email / Phone / License / Aadhar / PAN)"
     });
   }
+
+  res.status(400).json({
+    message: err.message
+  });
+}
+
 };
 
 // 🔹 Change Password
