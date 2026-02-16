@@ -96,6 +96,52 @@ exports.login = async ({ email, phone, profile_id, password }) => {
     return { id: vendor.id, role: "vendor" };
   }
 
-  /* ================= NOT FOUND ================= */
-  throw new Error("User not found");
+return { id: vendor.id, role: "vendor" };
+};
+const { hashPassword } = require("../../utils/password.utils");
+
+exports.registerCustomer = async (data) => {
+  const {
+    name,
+    email,
+    phone,
+    password,
+    latitude,
+    longitude,
+    address
+  } = data;
+
+  // 🔹 Duplicate check (email OR phone)
+  const existing = await pool.query(
+    `SELECT id
+     FROM app_data.customers
+     WHERE (email = $1 AND $1 IS NOT NULL)
+        OR (phone = $2 AND $2 IS NOT NULL)`,
+    [email ?? null, phone ?? null]
+  );
+
+  if (existing.rowCount > 0) {
+    throw new Error("Customer already exists");
+  }
+
+  // 🔹 Hash password
+  const passwordHash = await hashPassword(password);
+
+  // 🔹 Insert customer
+  await pool.query(
+    `INSERT INTO app_data.customers
+     (name, email, phone, password_hash, latitude, longitude, address)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [
+      name,
+      email ?? null,
+      phone ?? null,
+      passwordHash,
+      latitude ?? null,
+      longitude ?? null,
+      address ?? null
+    ]
+  );
+
+  return true;
 };
