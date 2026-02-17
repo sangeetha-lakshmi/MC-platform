@@ -32,5 +32,7 @@ router.put(
   vendorApproved,
   vendorController.updateVendorProfile
 );
-
+router.put("/update-order-status",
+  vendorController.updateOrderStatus
+);
 module.exports = router;

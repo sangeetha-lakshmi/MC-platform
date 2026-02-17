@@ -168,3 +168,156 @@ exports.searchLiveProducts = async (req, res) => {
     });
   }
 };
+
+/* ================= GET HOMEPAGE CATEGORIES ================= */
+
+exports.getHomepageCategories = async (req, res) => {
+  try {
+
+    const data = await customerService.getCategoriesWithSubCategories();
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("CATEGORY ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch categories",
+      error: error.message
+    });
+  }
+};
+/* ================= SUBCATEGORIES BY CATEGORY ================= */
+
+exports.getSubCategories = async (req, res) => {
+  try {
+
+    const { category_id } = req.params;
+
+    if (!category_id) {
+      return res.status(400).json({
+        message: "category_id is required"
+      });
+    }
+
+    const data =
+      await customerService.getSubCategoriesByCategory(category_id);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("SUBCATEGORY ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch subcategories",
+      error: error.message
+    });
+  }
+};
+/* ================= ADD TO CART ================= */
+
+exports.addToCart = async (req, res) => {
+  try {
+
+    const { customer_id, vendor_id, product_id, quantity } = req.body;
+
+    if (!customer_id || !vendor_id || !product_id) {
+      return res.status(400).json({
+        message: "customer_id, vendor_id and product_id required"
+      });
+    }
+
+    await customerService.addToCart({
+      customerId: customer_id,
+      vendorId: vendor_id,
+      productId: product_id,
+      quantity: quantity || 1
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Item added to cart"
+    });
+
+  } catch (error) {
+
+    res.status(400).json({
+      message: error.message
+    });
+  }
+};
+exports.getCartItems = async (req, res) => {
+
+  const { customer_id } = req.params;
+
+  const data = await customerService.getCartItems(customer_id);
+
+  res.json({
+    success: true,
+    count: data.length,
+    data
+  });
+};
+/* ================= PLACE ORDER ================= */
+exports.placeOrder = async (req, res) => {
+  try {
+
+    console.log("BODY 👉", req.body);
+
+    const customerId = parseInt(req.body.customer_id);
+
+    if (isNaN(customerId)) {
+      return res.status(400).json({
+        message: "Valid customer_id required"
+      });
+    }
+
+    const result =
+      await customerService.placeOrder({
+        customerId
+      });
+
+    res.status(200).json(result);
+
+  } catch (error) {
+    res.status(400).json({
+      message: error.message
+    });
+  }
+};
+/* ================= MY ORDERS ================= */
+
+exports.getMyOrders = async (req, res) => {
+  try {
+
+    const customerId = req.user.id; // from auth middleware
+
+    const orders =
+      await customerService.getCustomerOrders(customerId);
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders
+    });
+
+  } catch (error) {
+
+    console.error("MY ORDERS ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch orders",
+      error: error.message
+    });
+  }
+};

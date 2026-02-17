@@ -261,7 +261,35 @@ exports.toggleShopStatus = async (req, res) => {
   }
 };
 
-//VENDOR DASHBOARD FETCH API
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+
+    const { order_id, status } = req.body;
+
+    if (!order_id || !status) {
+      return res.status(400).json({
+        message: "order_id and status required"
+      });
+    }
+
+    const updatedOrder =
+      await vendorService.updateOrderStatus(order_id, status);
+
+    res.json({
+      success: true,
+      message: "Order status updated",
+      data: updatedOrder
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
 
 
 
