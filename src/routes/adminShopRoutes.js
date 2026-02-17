@@ -7,4 +7,4 @@ const { getShops } = require("../controllers/adminShopController");
 // ✅ Admin shop listing (industry standard)
 router.get("/v1/admin/shops", protect, adminOnly, getShops);
 
-module.exports = router;
+module.exports = router;    
