@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const customerController = require("../controller/customer.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
 
 // ========================================
@@ -8,7 +9,7 @@ const customerController = require("../controller/customer.controller");
 // ========================================
 
 router.post(
-  "/nearby-shops",
+  "/nearby-shops",authMiddleware,
   customerController.getNearbyShops
 );
 
@@ -18,7 +19,7 @@ router.post(
 // ========================================
 
 router.post(
-  "/nearby-shops-by-category",
+  "/nearby-shops-by-category",authMiddleware,
   customerController.getNearbyShopsByCategory
 );
 
@@ -28,7 +29,7 @@ router.post(
 // ========================================
 
 router.get(
-  "/search-shop",
+  "/search-shop",authMiddleware,
   customerController.searchShop
 );
 
@@ -38,7 +39,7 @@ router.get(
 // ========================================
 
 router.post(
-  "/category-shops",
+  "/category-shops",authMiddleware,
   customerController.getCategoryShops
 );
 
@@ -48,7 +49,7 @@ router.post(
 // ========================================
 
 router.post(
-  "/food-type-shops",
+  "/food-type-shops",authMiddleware, 
   customerController.getFoodTypeShops
 );
 
@@ -74,17 +75,18 @@ router.get(
 
 
 /* ================= HOMEPAGE CATEGORIES ================= */
-router.get("/categories", customerController.getHomepageCategories);
+router.get("/categories", authMiddleware, customerController.getHomepageCategories);
 
 /* ================= HOMEPAGE SUB-CATEGORIES ================= */
 router.get(
   "/subcategories/:category_id",
+  authMiddleware,
   customerController.getSubCategories
 );
 /* ================= ADD TO CART ================= */
-router.post("/add-to-cart", customerController.addToCart);
-router.get("/cart/:customer_id", customerController.getCartItems);
-router.post("/place-order", customerController.placeOrder);
+router.post("/add-to-cart",authMiddleware,customerController.addToCart);
+router.get("/cart/:customer_id", authMiddleware, customerController.getCartItems);
+router.post("/place-order", authMiddleware, customerController.placeOrder);
 
 
 module.exports = router;
