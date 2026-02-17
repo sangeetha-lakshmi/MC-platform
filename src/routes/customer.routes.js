@@ -20,4 +20,18 @@ router.post("/category-shops", customerController.getCategoryShops);
 // search by Food-Type(veg or Non-veg)
 router.post("/food-type-shops", customerController.getFoodTypeShops);
 
+/* ================= HOMEPAGE CATEGORIES ================= */
+router.get("/categories", customerController.getHomepageCategories);
+
+/* ================= HOMEPAGE SUB-CATEGORIES ================= */
+router.get(
+  "/subcategories/:category_id",
+  customerController.getSubCategories
+);
+/* ================= ADD TO CART ================= */
+router.post("/add-to-cart", customerController.addToCart);
+router.get("/cart/:customer_id", customerController.getCartItems);
+router.post("/place-order", customerController.placeOrder);
+
+
 module.exports = router;

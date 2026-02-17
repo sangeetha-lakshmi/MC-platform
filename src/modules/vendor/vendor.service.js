@@ -63,8 +63,23 @@ const findVendorByEmail = async (email) => {
   );
   return result.rows[0];
 };
+/* ---------------- UPDATE ORDER STATUS ---------------- */
+const updateOrderStatus = async (orderId, status) => {
 
+  const result = await db.query(
+    `UPDATE orders
+     SET status = $1
+     WHERE id = $2
+     RETURNING *`,
+    [status, orderId]
+  );
+
+  return result.rows[0];
+};
+
+/* ✅ EXPORT ALL FUNCTIONS HERE */
 module.exports = {
   createVendor,
-  findVendorByEmail
+  findVendorByEmail,
+  updateOrderStatus
 };
