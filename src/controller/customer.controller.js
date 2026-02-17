@@ -138,6 +138,10 @@ exports.getHomepageCategories = async (req, res) => {
 
     res.status(500).json({
       message: "Unable to fetch categories",
+      error: error.message
+    });
+  }
+};
 
 // =====================================================
 // 🔥 SHOP CLICK → GET LIVE PRODUCTS
