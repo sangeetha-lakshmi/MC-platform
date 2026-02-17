@@ -119,6 +119,29 @@ exports.getFoodTypeShops = async (req, res) => {
   }
 };
 
+/* ================= GET HOMEPAGE CATEGORIES ================= */
+
+exports.getHomepageCategories = async (req, res) => {
+  try {
+
+    const data = await customerService.getCategoriesWithSubCategories();
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("CATEGORY ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch categories",
+      error: error.message
+    });
+  }
+};
 
 // =====================================================
 // 🔥 SHOP CLICK → GET LIVE PRODUCTS
@@ -225,20 +248,20 @@ exports.getSubCategories = async (req, res) => {
   }
 };
 /* ================= ADD TO CART ================= */
-
 exports.addToCart = async (req, res) => {
   try {
 
-    const { customer_id, vendor_id, product_id, quantity } = req.body;
+    const customerId = req.user.id;   // 🔐 from token
+    const { vendor_id, product_id, quantity } = req.body;
 
-    if (!customer_id || !vendor_id || !product_id) {
+    if (!vendor_id || !product_id) {
       return res.status(400).json({
-        message: "customer_id, vendor_id and product_id required"
+        message: "vendor_id and product_id required"
       });
     }
 
     await customerService.addToCart({
-      customerId: customer_id,
+      customerId,
       vendorId: vendor_id,
       productId: product_id,
       quantity: quantity || 1
@@ -250,17 +273,17 @@ exports.addToCart = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(400).json({
       message: error.message
     });
   }
 };
+
 exports.getCartItems = async (req, res) => {
 
-  const { customer_id } = req.params;
+  const customerId = req.user.id;
 
-  const data = await customerService.getCartItems(customer_id);
+  const data = await customerService.getCartItems(customerId);
 
   res.json({
     success: true,
@@ -274,7 +297,8 @@ exports.placeOrder = async (req, res) => {
 
     console.log("BODY 👉", req.body);
 
-    const customerId = parseInt(req.body.customer_id);
+    const customerId = req.user.id;
+
 
     if (isNaN(customerId)) {
       return res.status(400).json({

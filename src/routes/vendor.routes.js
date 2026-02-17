@@ -32,7 +32,11 @@ router.put(
   vendorApproved,
   vendorController.updateVendorProfile
 );
-router.put("/update-order-status",
+router.put(
+  "/update-order-status",
+  authMiddleware,
+  vendorApproved,
   vendorController.updateOrderStatus
 );
+
 module.exports = router;
