@@ -1,5 +1,6 @@
 const db = require("../../config/database");
 
+
 // ===============================
 // VENDOR SIDE
 // ===============================
@@ -33,8 +34,18 @@ exports.getAllProducts = async (vendorId) => {
 };
 
 
+// 🔥 ADD THIS MISSING FUNCTION
+exports.getProductById = async (id) => {
+  const { rows } = await db.query(
+    `SELECT * FROM products WHERE id = $1`,
+    [id]
+  );
 
-// get single product by id (vendor edit)
+  return rows[0];
+};
+
+
+// create product
 exports.createProduct = async (vendorId, data) => {
   const { rows } = await db.query(
     `INSERT INTO products (
@@ -73,9 +84,7 @@ exports.createProduct = async (vendorId, data) => {
 };
 
 
-
-
-// update product (vendor can turn live ON/OFF)
+// update product details
 exports.updateProduct = async (id, data) => {
   const { rows } = await db.query(
     `UPDATE products SET
@@ -112,41 +121,80 @@ exports.updateProduct = async (id, data) => {
   return rows[0];
 };
 
-exports.updateLiveStatus = async (id, isLive) => {
+
+// 🔥 REAL TOGGLE LIVE STATUS
+exports.toggleLiveStatus = async (id) => {
   const { rows } = await db.query(
     `UPDATE products
-     SET is_live = $1, updated_at = NOW()
-     WHERE id = $2
+     SET is_live = NOT is_live,
+         updated_at = NOW()
+     WHERE id = $1
      RETURNING *`,
-    [isLive, id]
+    [id]
   );
+
   return rows[0];
 };
+
+
 // delete product
 exports.deleteProduct = async (id) => {
   await db.query("DELETE FROM products WHERE id = $1", [id]);
 };
 
 
+
 // ===============================
-// CUSTOMER SIDE (NEW)
+// CUSTOMER SIDE
 // ===============================
 
-// get ONLY live products for customers
-exports.getProducts = async (req, res) => {
-  const products = await service.getLiveProductsForCustomer(); // ✅ CORRECT
-  res.json(products);
-};
-
-// toggle product live status (PATCH)
-exports.updateLiveStatus = async (id, isLive) => {
+// get only LIVE products by shop (vendor_id)
+exports.getLiveProductsByShop = async (vendorId) => {
   const { rows } = await db.query(
-    `UPDATE products
-     SET is_live = $1, updated_at = NOW()
-     WHERE id = $2
-     RETURNING *`,
-    [isLive, id]
+    `SELECT 
+        id,
+        vendor_id,
+        name,
+        description,
+        image,
+        price,
+        final_price,
+        stock,
+        preparing_minutes,
+        food_type,
+        category,
+        subcategory
+     FROM products
+     WHERE vendor_id = $1
+       AND is_live = true
+     ORDER BY id DESC`,
+    [vendorId]
   );
-  return rows[0];
+
+  return rows;
 };
 
+
+// search LIVE products globally
+exports.searchLiveProducts = async (searchText) => {
+  const { rows } = await db.query(
+    `SELECT 
+        id,
+        vendor_id,
+        name,
+        description,
+        image,
+        price,
+        final_price,
+        food_type,
+        category,
+        subcategory
+     FROM products
+     WHERE is_live = true
+       AND LOWER(name) LIKE LOWER($1)
+     ORDER BY id DESC`,
+    [`%${searchText}%`]
+  );
+
+  return rows;
+};

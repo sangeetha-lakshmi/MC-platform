@@ -1,7 +1,12 @@
 const service = require("../modules/vendor/product.service");
 const db = require("../config/database");
+const { DEFAULT_PRODUCT_IMAGE } = require("../constants/defaults");
 
-// default data for "Add Product" page
+
+// ===============================
+// PRODUCT TEMPLATE
+// ===============================
+
 exports.getProductTemplate = (req, res) => {
   res.json({
     name: "",
@@ -18,36 +23,52 @@ exports.getProductTemplate = (req, res) => {
   });
 };
 
+
+// ===============================
+// VENDOR SIDE
+// ===============================
+
 // get all products of logged-in vendor
 exports.getAll = async (req, res) => {
-  const products = await service.getAllProducts(req.user.id);
-  res.json(products);
+  try {
+    const products = await service.getAllProducts(req.user.id);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching products" });
+  }
 };
 
-// get single product (edit)
+
+// 🔥 ADDED MISSING FUNCTION (CRASH FIX)
 exports.getOne = async (req, res) => {
-  const product = await service.getProductById(req.params.id);
-  res.json(product);
+  try {
+    const product = await service.getProductById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error("Get One Error:", error);
+    res.status(500).json({ message: "Error fetching product" });
+  }
 };
+
 
 // create product
-const { DEFAULT_PRODUCT_IMAGE } = require("../constants/defaults");
-
 exports.create = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // ✅ IMAGE HANDLING (ALL CASES)
     let image = DEFAULT_PRODUCT_IMAGE;
 
-    // Case 1: Image uploaded
     if (req.file) {
       image = req.file.filename;
     }
 
-    // Case 2: Frontend sends image URL/string
     if (req.body.image && typeof req.body.image === "string") {
       image = req.body.image;
     }
@@ -58,6 +79,7 @@ exports.create = async (req, res) => {
     });
 
     res.status(201).json(product);
+
   } catch (err) {
     console.error("Create Product Error:", err.message);
     res.status(500).json({ message: "Failed to create product" });
@@ -65,36 +87,46 @@ exports.create = async (req, res) => {
 };
 
 
-
 // update product
 exports.update = async (req, res) => {
-  const product = await service.updateProduct(req.params.id, req.body);
-  res.json(product);
+  try {
+    const product = await service.updateProduct(req.params.id, req.body);
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating product" });
+  }
 };
+
 
 // delete product
 exports.remove = async (req, res) => {
-  await service.deleteProduct(req.params.id);
-  res.json({ message: "Product deleted" });
-};
-
-// PATCH: toggle product live status
-exports.updateLiveStatus = async (req, res) => {
-  const { is_live } = req.body;
-
-  if (typeof is_live !== "boolean") {
-    return res.status(400).json({
-      message: "is_live must be true or false"
-    });
+  try {
+    await service.deleteProduct(req.params.id);
+    res.json({ message: "Product deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting product" });
   }
-
-  const product = await service.updateLiveStatus(
-    req.params.id,
-    is_live
-  );
-
-  res.json(product);
 };
+
+
+// ===============================
+// 🔥 REAL TOGGLE LIVE STATUS
+// ===============================
+
+exports.toggleLiveStatus = async (req, res) => {
+  try {
+    const updatedProduct = await service.toggleLiveStatus(req.params.id);
+    res.json(updatedProduct);
+  } catch (error) {
+    console.error("Toggle Error:", error);
+    res.status(500).json({ message: "Error toggling live status" });
+  }
+};
+
+
+// ===============================
+// ADMIN SIDE
+// ===============================
 
 exports.addProductByAdmin = async (req, res) => {
   try {
@@ -112,10 +144,6 @@ exports.addProductByAdmin = async (req, res) => {
       subcategory
     } = req.body;
 
-    /* ===============================
-       BASIC VALIDATION
-    ================================ */
-
     if (!name) throw new Error("Product name is required");
     if (!price) throw new Error("Original price is required");
     if (!final_price) throw new Error("Final price is required");
@@ -123,10 +151,6 @@ exports.addProductByAdmin = async (req, res) => {
     if (Number(final_price) > Number(price)) {
       throw new Error("Final price cannot be greater than original price");
     }
-
-    /* ===============================
-       FETCH SHOP TYPE
-    ================================ */
 
     const vendorResult = await db.query(
       `SELECT business_type FROM vendors WHERE id = $1`,
@@ -136,20 +160,16 @@ exports.addProductByAdmin = async (req, res) => {
     if (vendorResult.rows.length === 0) {
       return res.status(404).json({ message: "Vendor not found" });
     }
-const shopType = vendorResult.rows[0].business_type;
-// Get category_id from categories table
 
+    const shopType = vendorResult.rows[0].business_type;
 
-// Validate subcategory belongs to this category
-if (!subcategory) {
-  throw new Error("Subcategory is required");
-}
+    if (!subcategory) {
+      throw new Error("Subcategory is required");
+    }
 
-
-
-    /* ===============================
-       FOOD vs NON-FOOD LOGIC
-    ================================ */
+    let finalPreparingMinutes = 0;
+    let finalFoodType = null;
+    let finalStock = 0;
 
     if (shopType === "Food") {
 
@@ -159,7 +179,6 @@ if (!subcategory) {
 
       finalPreparingMinutes = preparing_minutes;
       finalFoodType = food_type || null;
-      finalStock = 0; // not used
 
     } else {
 
@@ -168,13 +187,7 @@ if (!subcategory) {
       }
 
       finalStock = stock;
-      finalPreparingMinutes = 0;
-      finalFoodType = null;
     }
-
-    /* ===============================
-       INSERT PRODUCT
-    ================================ */
 
     const { rows } = await db.query(
       `INSERT INTO products (
@@ -252,7 +265,7 @@ exports.updateProductByAdmin = async (req, res) => {
         name,
         description,
         price,
-        final_price,
+        discount,
         stock,
         category,
         subcategory,
@@ -274,7 +287,7 @@ exports.updateProductByAdmin = async (req, res) => {
     res.status(500).json({ message: "Error updating product" });
   }
 };
-;
+
 
 exports.deleteProductByAdmin = async (req, res) => {
   try {

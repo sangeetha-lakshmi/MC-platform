@@ -1,11 +1,16 @@
 const customerService = require("../modules/customer/customer.service");
+const productService = require("../modules/vendor/product.service");
+
+
+// =====================================================
+// NEARBY SHOPS BY CATEGORY + SUBCATEGORY
+// =====================================================
 
 exports.getNearbyShopsByCategory = async (req, res) => {
   try {
 
     const { latitude, longitude, category, sub_category } = req.body;
 
-    // ✅ Better validation
     if (
       latitude === undefined ||
       longitude === undefined ||
@@ -18,7 +23,6 @@ exports.getNearbyShopsByCategory = async (req, res) => {
       });
     }
 
-    // ✅ Call service
     const data =
       await customerService.getNearbyVendorsByCategoryAndSubCategory({
         customerLat: Number(latitude),
@@ -44,6 +48,12 @@ exports.getNearbyShopsByCategory = async (req, res) => {
     });
   }
 };
+
+
+// =====================================================
+// NEARBY SHOPS
+// =====================================================
+
 exports.getNearbyShops = async (req, res) => {
   const { latitude, longitude } = req.body;
 
@@ -54,12 +64,24 @@ exports.getNearbyShops = async (req, res) => {
 
   res.json(data);
 };
+
+
+// =====================================================
+// SEARCH SHOP BY NAME
+// =====================================================
+
 exports.searchShop = async (req, res) => {
   const { name } = req.query;
 
   const data = await customerService.searchShopByName(name);
   res.json(data);
 };
+
+
+// =====================================================
+// CATEGORY SHOPS
+// =====================================================
+
 exports.getCategoryShops = async (req, res) => {
   try {
     const { latitude, longitude, category } = req.body;
@@ -77,6 +99,10 @@ exports.getCategoryShops = async (req, res) => {
 };
 
 
+// =====================================================
+// VEG / NON-VEG SHOPS
+// =====================================================
+
 exports.getFoodTypeShops = async (req, res) => {
   try {
     const { latitude, longitude, foodType } = req.body;
@@ -90,5 +116,55 @@ exports.getFoodTypeShops = async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+// =====================================================
+// 🔥 SHOP CLICK → GET LIVE PRODUCTS
+// =====================================================
+
+exports.getLiveProductsByShop = async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const products = await productService.getLiveProductsByShop(shopId);
+
+    res.status(200).json(products);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+
+// =====================================================
+// 🔥🔥🔥 NEW FUNCTION ADDED
+// 🔍 GLOBAL LIVE PRODUCT SEARCH
+// =====================================================
+
+exports.searchLiveProducts = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        message: "Search query is required"
+      });
+    }
+
+    const products =
+      await productService.searchLiveProducts(query);
+
+    res.status(200).json(products);
+
+  } catch (error) {
+    console.error("SEARCH ERROR 👉", error);
+    res.status(500).json({
+      message: "Unable to search products",
+      error: error.message
+    });
   }
 };
