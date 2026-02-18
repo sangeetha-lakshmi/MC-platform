@@ -572,4 +572,3 @@ exports.getCustomerOrders = async (customerId) => {
 
   return result.rows;
 };
-
