@@ -176,3 +176,4 @@ if (phone) {
     message: "Customer registered successfully"
   };
 };
+//customer logic pending, will add soon
