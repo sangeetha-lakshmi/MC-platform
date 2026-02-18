@@ -9,6 +9,7 @@ const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
 
 /* ================= SEND OTP ================= */
 exports.sendOTP = async (phone) => {
+  phone = String(phone);
   try {
     // 🔹 Ensure phone is in E.164 format
     if (!phone.startsWith("+")) {
