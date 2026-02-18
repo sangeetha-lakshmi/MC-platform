@@ -46,8 +46,6 @@ const declineVendor = async (vendorId) => {
   );
 };
 
-
-
 /* ---------------- CHANGE PASSWORD ---------------- */
 const changePassword = async (adminId, currentPassword, newPassword) => {
   const result = await db.query(
@@ -92,8 +90,7 @@ const getDeclinedVendors = async () => {
   return result.rows;
 };
 
-
-// 1️⃣ Category Count
+/* ---------------- CATEGORY COUNT ---------------- */
 const getCategoryCount = async () => {
   const result = await db.query(`
     SELECT business_type, COUNT(*) AS shop_count
@@ -106,8 +103,7 @@ const getCategoryCount = async () => {
   return result.rows;
 };
 
-// 2️⃣ Get Shops (All or Filtered)
-// 2️⃣ Get Shops (All or Filtered) WITH PRODUCT COUNT
+/* ---------------- GET SHOPS ---------------- */
 const getShops = async (category) => {
   let query = `
     SELECT 
@@ -138,8 +134,7 @@ const getShops = async (category) => {
   return result.rows;
 };
 
-
-// 3️⃣ Get Single Shop
+/* ---------------- GET SINGLE SHOP ---------------- */
 const getShopById = async (id) => {
   const result = await db.query(
     `SELECT id, shop_name, email, business_type
@@ -150,7 +145,7 @@ const getShopById = async (id) => {
   return result.rows[0];
 };
 
-// 4️⃣ Get Products of Shop
+/* ---------------- GET SHOP PRODUCTS ---------------- */
 const getShopProducts = async (vendorId) => {
   const result = await db.query(
     `SELECT 
@@ -173,10 +168,7 @@ const getShopProducts = async (vendorId) => {
   return result.rows;
 };
 
-
-
-
-// 5️⃣ Toggle Product
+/* ---------------- TOGGLE PRODUCT ---------------- */
 const toggleProduct = async (productId) => {
   const result = await db.query(
     `UPDATE products
@@ -194,18 +186,129 @@ const toggleProduct = async (productId) => {
   return result.rows[0];
 };
 
+/* ---------------- SYSTEM SETTINGS (CREATE / UPDATE) ---------------- */
+const saveOrUpdateSystemSettings = async ({
+  platform_name,
+  support_email,
+  contact_number,
+  default_currency,
+  timezone
+}) => {
+
+  const existing = await db.query(
+    "SELECT * FROM system_settings LIMIT 1"
+  );
+
+  if (existing.rows.length > 0) {
+
+    const result = await db.query(
+      `UPDATE system_settings
+       SET platform_name = $1,
+           support_email = $2,
+           contact_number = $3,
+           default_currency = $4,
+           timezone = $5,
+           updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [
+        platform_name,
+        support_email,
+        contact_number,
+        default_currency,
+        timezone,
+        existing.rows[0].id
+      ]
+    );
+
+    return result.rows[0];
+
+  } else {
+
+    const result = await db.query(
+      `INSERT INTO system_settings
+       (platform_name, support_email, contact_number, default_currency, timezone)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        platform_name,
+        support_email,
+        contact_number,
+        default_currency,
+        timezone
+      ]
+    );
+
+    return result.rows[0];
+  }
+};
+
+/* ---------------- PLATFORM SETTINGS (CREATE / UPDATE) ---------------- */
+const saveOrUpdatePlatformSettings = async ({
+  enable_shop_registration,
+  enable_orders,
+  maintenance_mode,
+  commission_percentage
+}) => {
+
+  const existing = await db.query(
+    "SELECT * FROM platform_settings LIMIT 1"
+  );
+
+  if (existing.rows.length > 0) {
+
+    const result = await db.query(
+      `UPDATE platform_settings
+       SET enable_shop_registration = $1,
+           enable_orders = $2,
+           maintenance_mode = $3,
+           commission_percentage = $4,
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [
+        enable_shop_registration,
+        enable_orders,
+        maintenance_mode,
+        commission_percentage,
+        existing.rows[0].id
+      ]
+    );
+
+    return result.rows[0];
+
+  } else {
+
+    const result = await db.query(
+      `INSERT INTO platform_settings
+       (enable_shop_registration, enable_orders, maintenance_mode, commission_percentage)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [
+        enable_shop_registration,
+        enable_orders,
+        maintenance_mode,
+        commission_percentage
+      ]
+    );
+
+    return result.rows[0];
+  }
+};
 
 module.exports = {
-loginAdmin,
+  loginAdmin,
   getPendingVendors,
   approveVendor,
   declineVendor,
   changePassword,
   getApprovedVendors,
-  getDeclinedVendors, 
+  getDeclinedVendors,
   getCategoryCount,
   getShops,
   getShopById,
-  getShopProducts, 
-  toggleProduct
+  getShopProducts,
+  toggleProduct,
+  saveOrUpdateSystemSettings,
+  saveOrUpdatePlatformSettings
 };

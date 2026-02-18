@@ -20,6 +20,36 @@ const adminLogin = async (req, res) => {
   }
 };
 
+/* ================= SYSTEM SETTINGS ================= */
+const saveSystemSettings = async (req, res) => {
+  try {
+    const data = await adminService.saveOrUpdateSystemSettings(req.body);
+
+    res.json({
+      message: "System settings saved successfully ✅",
+      data
+    });
+  } catch (error) {
+    console.error("System Settings Error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= PLATFORM SETTINGS ================= */
+const savePlatformSettings = async (req, res) => {
+  try {
+    const data = await adminService.saveOrUpdatePlatformSettings(req.body);
+
+    res.json({
+      message: "Platform settings saved successfully ✅",
+      data
+    });
+  } catch (error) {
+    console.error("Platform Settings Error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /* ================= GET PENDING VENDORS ================= */
 const getPendingVendors = async (req, res) => {
   try {
@@ -108,7 +138,6 @@ const updateAdminProfile = async (req, res) => {
     const adminId = req.user.id;
     const { name, email, phone, currentPassword, newPassword } = req.body;
 
-    // 1️⃣ Update basic profile
     await pool.query(
       `UPDATE admin_users 
        SET name=$1, email=$2, phone=$3 
@@ -116,7 +145,6 @@ const updateAdminProfile = async (req, res) => {
       [name, email, phone, adminId]
     );
 
-    // 2️⃣ If password fields are provided
     if (currentPassword && newPassword) {
 
       const result = await pool.query(
@@ -176,20 +204,20 @@ const getShopById = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-  `
-  SELECT 
-    v.id,
-    v.shop_name,
-    v.email,
-    v.business_type AS category,
-    c.id AS category_id
-  FROM vendors v
-  LEFT JOIN app_data.categories c
-    ON c.name = v.business_type
-  WHERE v.id = $1
-  `,
-  [id]
-);
+      `
+      SELECT 
+        v.id,
+        v.shop_name,
+        v.email,
+        v.business_type AS category,
+        c.id AS category_id
+      FROM vendors v
+      LEFT JOIN app_data.categories c
+        ON c.name = v.business_type
+      WHERE v.id = $1
+      `,
+      [id]
+    );
 
     res.json(result.rows[0]);
 
@@ -198,7 +226,6 @@ const getShopById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 /* ================= GET SHOP PRODUCTS ================= */
 const getShopProducts = async (req, res) => {
@@ -228,10 +255,11 @@ const toggleProduct = async (req, res) => {
   }
 };
 
-
 /* ================= EXPORTS ================= */
 module.exports = {
   adminLogin,
+  saveSystemSettings,
+  savePlatformSettings,   // ✅ ADDED
   getPendingVendors,
   approveVendor,
   declineVendor,

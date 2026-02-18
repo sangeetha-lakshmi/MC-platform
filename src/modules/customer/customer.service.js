@@ -348,11 +348,12 @@ exports.placeOrder = async ({ customerId }) => {
   try {
     await client.query("BEGIN");
 
-    // 1️⃣ Get cart items WITH product price
+    // 1️⃣ Get cart items WITH vendor_id + price
     const cartRes = await client.query(
       `SELECT 
          c.product_id,
          c.quantity,
+         c.vendor_id,
          p.price
        FROM cart_items c
        JOIN products p ON p.id = c.product_id
@@ -366,53 +367,54 @@ exports.placeOrder = async ({ customerId }) => {
 
     const items = cartRes.rows;
 
-    // 2️⃣ Calculate total using product price
+    // 2️⃣ Get vendor_id (cart already restricted to one vendor)
+    const vendorId = items[0].vendor_id;
+
+    // 3️⃣ Calculate total
     const totalAmount = items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
 
-    // 3️⃣ Generate order code
+    // 4️⃣ Generate order code
     const orderCode = "ORD-" + Date.now();
 
-    // 4️⃣ Insert order
+    // 5️⃣ Insert order WITH vendor_id
     const orderRes = await client.query(
       `INSERT INTO orders
-       (order_code, customer_id, total_amount, status)
-       VALUES ($1, $2, $3, 'pending')
+       (order_code, customer_id, vendor_id, total_amount, status)
+       VALUES ($1, $2, $3, $4, 'pending')
        RETURNING id`,
-      [orderCode, customerId, totalAmount]
+      [orderCode, customerId, vendorId, totalAmount]
     );
 
     const orderId = orderRes.rows[0].id;
 
-    // 5️⃣ Insert order items
+    // 6️⃣ Insert order items
     for (const item of items) {
 
-  // 🔹 Get product name from products table
-  const productRes = await client.query(
-    `SELECT name FROM products WHERE id = $1`,
-    [item.product_id]
-  );
+      const productRes = await client.query(
+        `SELECT name FROM products WHERE id = $1`,
+        [item.product_id]
+      );
 
-  const productName = productRes.rows[0]?.name || "Unknown";
+      const productName = productRes.rows[0]?.name || "Unknown";
 
-  await client.query(
-    `INSERT INTO order_items
-     (order_id, product_id, item_name, quantity, price)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [
-      orderId,
-      item.product_id,
-      productName,
-      item.quantity,
-      item.price
-    ]
-  );
-}
+      await client.query(
+        `INSERT INTO order_items
+         (order_id, product_id, item_name, quantity, price)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          orderId,
+          item.product_id,
+          productName,
+          item.quantity,
+          item.price
+        ]
+      );
+    }
 
-
-    // 6️⃣ Clear cart
+    // 7️⃣ Clear cart
     await client.query(
       `DELETE FROM cart_items WHERE customer_id = $1`,
       [customerId]
@@ -434,6 +436,7 @@ exports.placeOrder = async ({ customerId }) => {
     client.release();
   }
 };
+
 /* ================= GET CUSTOMER ORDERS ================= */
 exports.getCustomerOrders = async (customerId) => {
 

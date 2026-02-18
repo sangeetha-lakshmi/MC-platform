@@ -59,7 +59,7 @@ router.post(
 // ========================================
 
 router.get(
-  "/shop/:shopId/live-products",
+  "/shop/:shopId/live-products", authMiddleware,
   customerController.getLiveProductsByShop
 );
 
@@ -69,7 +69,7 @@ router.get(
 // ========================================
 
 router.get(
-  "/search-products",
+  "/search-products",authMiddleware,
   customerController.searchLiveProducts
 );
 
@@ -95,7 +95,7 @@ router.post("/place-order", authMiddleware, customerController.placeOrder);
 /* ================= 🔥 MY ORDERS (NEW) ================= */
 router.get(
   "/my-orders",
-  auth, // 🔐 require login
+  authMiddleware, // 🔐 require login
   customerController.getMyOrders
 );
 
