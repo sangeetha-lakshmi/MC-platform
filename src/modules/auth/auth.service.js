@@ -49,7 +49,10 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
     const match = await comparePassword(password, partner.password_hash);
 
-  
+  if (!partner.phone_verified) {
+  throw new Error("Phone not verified");
+}
+
 
     if (!match) throw new Error("Invalid password");
 
@@ -68,6 +71,9 @@ exports.login = async ({ email, phone, profile_id, password }) => {
     const customer = customerResult.rows[0];
 
     const match = await comparePassword(password, customer.password_hash);
+if (!customer.phone_verified) {
+  throw new Error("Phone not verified");
+}
 
 
     if (!match) throw new Error("Invalid password");
@@ -90,6 +96,9 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
     const match = await comparePassword(password, vendor.password_hash);
    
+if (!vendor.phone_verified) {
+  throw new Error("Phone not verified");
+}
 
     if (!match) throw new Error("Invalid password");
 

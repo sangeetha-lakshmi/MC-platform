@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
+const { sendOTP } = require("../utils/twilio");
 
 /* ✅ Register Vendor */
 /* ✅ Register Vendor */
@@ -63,7 +64,7 @@ exports.registerVendor = async (req, res) => {
       shop_logo,
       license_doc
     });
-
+await sendOTP(phone);
     res.status(201).json({
       message: "Vendor registered successfully. Waiting for admin approval"
     });
