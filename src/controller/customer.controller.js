@@ -58,12 +58,13 @@ exports.getNearbyShops = async (req, res) => {
   const { latitude, longitude } = req.body;
 
   const data = await customerService.getNearbyVendors({
-    customerLat: latitude,
-    customerLng: longitude
+    customerLat: Number(latitude),
+    customerLng: Number(longitude)
   });
 
   res.json(data);
 };
+
 
 
 // =====================================================
@@ -87,8 +88,8 @@ exports.getCategoryShops = async (req, res) => {
     const { latitude, longitude, category } = req.body;
 
     const data = await customerService.getShopsByCategory({
-      customerLat: latitude,
-      customerLng: longitude,
+       customerLat: Number(latitude),
+    customerLng: Number(longitude),
       category
     });
 
@@ -108,8 +109,8 @@ exports.getFoodTypeShops = async (req, res) => {
     const { latitude, longitude, foodType } = req.body;
 
     const data = await customerService.getVegNonVegShops({
-      customerLat: latitude,
-      customerLng: longitude,
+      customerLat: Number(latitude),
+    customerLng: Number(longitude),
       foodType
     });
 
