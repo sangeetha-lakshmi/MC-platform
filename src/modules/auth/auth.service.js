@@ -142,3 +142,4 @@ exports.registerCustomer = async (data) => {
 
   return true;
 };
+// pushing by sangeetha lakshmi
