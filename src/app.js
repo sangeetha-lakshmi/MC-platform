@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -35,7 +36,7 @@ app.use("/api/shop", orderRoutes);
 
 
 /* OTHER ROUTES */
-app.use("/api/auth", require("./routes/auth.routes"));
+
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
@@ -60,5 +61,9 @@ app.get("/api/health", (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found ❌" });
 });
+
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
+
 
 module.exports = app;

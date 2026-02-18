@@ -1,140 +1,198 @@
 const jwt = require("jsonwebtoken");
-const authService = require("../modules/auth/auth.service");
+const crypto = require("crypto");
+const bcrypt = require("bcrypt");
 const pool = require("../config/database");
+const transporter = require("../config/email");
+const { hashPassword, comparePassword } = require("../utils/password.utils");
 
-exports.login = async (req, res) => {
-  try {
-    const user = await authService.login(req.body);
+/* ================= HELPER ================= */
 
+function getTable(role) {
+  if (role === "customer") return "app_data.customers";
+  if (role === "vendor") return "app_data.vendors";
+  if (role === "delivery") return "app_data.delivery_partners";
+  return null;
+}
 
-
-    // 🔐 Create JWT
-    const token = jwt.sign(
-      {
-        id: user.id,
-        role: user.role
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    const decoded = jwt.decode(token);
-    console.log("Token Expiry:", new Date(decoded.exp * 1000));
-
-    res.status(200).json({
-      message: "Login successful",
-      token
-    });
-
-  } catch (err) {
-
-    console.log("LOGIN ERROR:", err.message);
-
-    // ✅ Proper Error Handling
-
-    if (err.message === "User not found") {
-      return res.status(404).json({ message: "Account not found" });
-    }
-
-    if (err.message === "Invalid password") {
-      return res.status(401).json({ message: "Incorrect password" });
-    }
-
-    if (err.message === "Admin approval pending") {
-      return res.status(403).json({ message: "Admin approval pending" });
-    }
-
-    if (err.message === "Account is inactive") {
-      return res.status(403).json({ message: "Account is inactive" });
-    }
-
-    if (err.message === "Password not set by admin yet") {
-      return res.status(403).json({ message: "Password not set by admin yet" });
-    }
-
-    // 🔥 Show real error instead of generic
-    return res.status(500).json({ message: err.message });
-  }
-};
-
-
-/* ================= CUSTOMER REGISTER ================= */
+/* ================= REGISTER (CUSTOMER EXAMPLE) ================= */
 
 exports.registerCustomer = async (req, res) => {
-  const { name, email, phone, password } = req.body;
-
-  if (!name || !password || (!email && !phone)) {
-    return res.status(400).json({
-      message: "Name, password and email or phone are required"
-    });
-  }
-
   try {
-    await authService.registerCustomer(req.body);
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        message: "Name, email and password required"
+      });
+    }
+
+    const existing = await pool.query(
+      `SELECT id FROM app_data.customers WHERE email=$1`,
+      [email]
+    );
+
+    if (existing.rowCount > 0) {
+      return res.status(400).json({
+        message: "Customer already exists"
+      });
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    await pool.query(
+      `INSERT INTO app_data.customers
+       (name, email, phone, password_hash)
+       VALUES ($1,$2,$3,$4)`,
+      [name, email, phone ?? null, hashedPassword]
+    );
 
     res.status(201).json({
       message: "Customer registered successfully"
     });
 
-  } catch (err) {
-
-    console.log("REGISTER ERROR:", err.message);
-
-    if (err.message === "Customer already exists") {
-      return res.status(400).json({ message: err.message });
-    }
-
-    return res.status(500).json({ message: err.message });
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+/* ================= LOGIN ================= */
 
-/* ================= CUSTOMER UPDATE ================= */
-
-exports.updateCustomerProfile = async (req, res) => {
+exports.login = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, phone, address, password } = req.body;
+    const { identifier, password, role } = req.body;
 
-    let query;
-    let values;
+    const table = getTable(role);
+    if (!table)
+      return res.status(400).json({ message: "Invalid role" });
 
-    if (password) {
-      const bcrypt = require("bcrypt");
-      const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `SELECT id, password_hash
+       FROM ${table}
+       WHERE email=$1 OR phone=$1`,
+      [identifier]
+    );
 
-      query = `
-        UPDATE app_data.customers
-        SET name=$1, phone=$2, address=$3, password_hash=$4
-        WHERE id=$5
-        RETURNING id,name,phone,address,email
-      `;
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: "User not found" });
 
-      values = [name, phone, address, hashedPassword, id];
+    const user = result.rows[0];
 
-    } else {
+    const match = await comparePassword(password, user.password_hash);
 
-      query = `
-        UPDATE app_data.customers
-        SET name=$1, phone=$2, address=$3
-        WHERE id=$4
-        RETURNING id,name,phone,address,email
-      `;
+    if (!match)
+      return res.status(401).json({ message: "Invalid password" });
 
-      values = [name, phone, address, id];
-    }
-
-    const result = await pool.query(query, values);
+    const token = jwt.sign(
+      { id: user.id, role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
     res.json({
-      message: "Profile updated successfully",
-      user: result.rows[0]
+      message: "Login successful",
+      token
     });
 
-  } catch (err) {
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    console.log("UPDATE ERROR:", err.message);
+/* ================= FORGOT PASSWORD ================= */
 
-    res.status(500).json({ message: err.message });
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { identifier, role } = req.body;
+
+    const table = getTable(role);
+    if (!table)
+      return res.status(400).json({ message: "Invalid role" });
+
+    const result = await pool.query(
+      `SELECT id FROM ${table}
+       WHERE email=$1 OR phone=$1`,
+      [identifier]
+    );
+
+    if (result.rowCount === 0)
+      return res.status(404).json({ message: "User not found" });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    await pool.query(
+      `UPDATE ${table}
+       SET reset_token=$1,
+           reset_token_expiry=$2
+       WHERE email=$3 OR phone=$3`,
+      [token, expiry, identifier]
+    );
+
+    const resetLink =
+      `http://localhost:3000/reset-password?token=${token}&role=${role}`;
+
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: identifier,
+      subject: "Reset Your Password",
+      html: `
+        <h3>Password Reset</h3>
+        <p>Click below to reset your password:</p>
+        <a href="${resetLink}">Reset Password</a>
+        <p>This link expires in 15 minutes.</p>
+      `
+    });
+
+    res.json({ message: "Reset link sent to email" });
+
+  } catch (error) {
+    console.error("FORGOT ERROR:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/* ================= RESET PASSWORD ================= */
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword, role } = req.body;
+
+    const table = getTable(role);
+    if (!table)
+      return res.status(400).json({ message: "Invalid role" });
+
+    const result = await pool.query(
+      `SELECT id, reset_token_expiry
+       FROM ${table}
+       WHERE reset_token=$1`,
+      [token]
+    );
+
+    if (result.rowCount === 0)
+      return res.status(400).json({ message: "Invalid token" });
+
+    const user = result.rows[0];
+
+    if (new Date(user.reset_token_expiry) < new Date())
+      return res.status(400).json({ message: "Token expired" });
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await pool.query(
+      `UPDATE ${table}
+       SET password_hash=$1,
+           reset_token=NULL,
+           reset_token_expiry=NULL
+       WHERE id=$2`,
+      [hashedPassword, user.id]
+    );
+
+    res.json({ message: "Password reset successful" });
+
+  } catch (error) {
+    console.error("RESET ERROR:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

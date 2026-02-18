@@ -108,10 +108,12 @@ exports.registerCustomer = async (data) => {
     password,
     latitude,
     longitude,
-    address
+    address,
+    email_token,
+    token_expiry
   } = data;
 
-  // 🔹 Duplicate check (email OR phone)
+  // 🔹 Duplicate check
   const existing = await pool.query(
     `SELECT id
      FROM app_data.customers
@@ -127,11 +129,13 @@ exports.registerCustomer = async (data) => {
   // 🔹 Hash password
   const passwordHash = await hashPassword(password);
 
-  // 🔹 Insert customer
+  // 🔹 Insert with email verification fields
   await pool.query(
     `INSERT INTO app_data.customers
-     (name, email, phone, password_hash, latitude, longitude, address)
-     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+     (name, email, phone, password_hash,
+      latitude, longitude, address,
+      email_verified, email_token, token_expiry)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
     [
       name,
       email ?? null,
@@ -139,9 +143,13 @@ exports.registerCustomer = async (data) => {
       passwordHash,
       latitude ?? null,
       longitude ?? null,
-      address ?? null
+      address ?? null,
+      false,              // email_verified
+      email_token ?? null,
+      token_expiry ?? null
     ]
   );
 
   return true;
 };
+
