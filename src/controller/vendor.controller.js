@@ -2,10 +2,17 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
+const { sendOTP } = require("../utils/twilio");
+const { hashPassword } = require("../utils/password.utils");
+
 
 /* ✅ Register Vendor */
 /* ✅ Register Vendor */
+
+
 exports.registerVendor = async (req, res) => {
+  const client = await pool.connect();
+
   try {
     const {
       shop_name,
@@ -23,110 +30,111 @@ exports.registerVendor = async (req, res) => {
       license_doc
     } = req.body;
 
-   if (
-  !shop_name ||
-  !owner_name ||
-  !email ||
-  !phone ||
-  !password ||
-  !business_type
-) {
-  return res.status(400).json({
-    error:
-      "shop_name, owner_name, email, phone, password, business_type are required"
-  });
-}
-
-
-    // ✅ NEW: check duplicate email (SAFE FIX)
-    const existingVendor = await vendorService.findVendorByEmail(email);
-    if (existingVendor) {
-      return res.status(409).json({
-        message: "Email already registered"
+    if (
+      !shop_name ||
+      !owner_name ||
+      !email ||
+      !phone ||
+      !password ||
+      !business_type
+    ) {
+      return res.status(400).json({
+        message:
+          "shop_name, owner_name, email, phone, password, business_type are required"
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+
+    console.log("STEP 1 - Starting registration");
+
+    await client.query("BEGIN");
+
+    console.log("STEP 2 - After BEGIN");
+
+    const existingUser = await client.query(
+      `SELECT id FROM users WHERE email = $1 OR phone = $2`,
+      [normalizedEmail, normalizedPhone]
+    );
+
+    if (existingUser.rowCount > 0) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        message: "Email or phone already registered"
+      });
+    }
+
+    // 🔐 Hash password using bcrypt directly
     const password_hash = await bcrypt.hash(password, 10);
 
-    await vendorService.createVendor({
-      shop_name,
-      owner_name,
-      email,
-      phone,
-      password_hash,
-      business_type,
-      address,
-      latitude,
-      longitude,
-      opening_time,
-      closing_time,
-      shop_logo,
-      license_doc
-    });
+    console.log("STEP 3 - Password hashed");
+
+    const userResult = await client.query(
+      `INSERT INTO users (name, email, phone, password_hash, role)
+       VALUES ($1,$2,$3,$4,'vendor')
+       RETURNING id`,
+      [owner_name, normalizedEmail, normalizedPhone, password_hash]
+    );
+
+    const userId = userResult.rows[0].id;
+
+    console.log("STEP 4 - User inserted:", userId);
+
+    await client.query(
+      `INSERT INTO vendors
+       (user_id, shop_name, owner_name, email, phone, password_hash,
+        business_type, address, latitude, longitude,
+        opening_time, closing_time, shop_logo, license_doc,
+        is_approved, phone_verified)
+       VALUES
+       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'pending',false)`,
+      [
+        userId,
+        shop_name,
+        owner_name,
+        normalizedEmail,
+        normalizedPhone,
+        password_hash,
+        business_type,
+        address,
+        latitude,
+        longitude,
+        opening_time,
+        closing_time,
+        shop_logo,
+        license_doc
+      ]
+    );
+
+    console.log("STEP 5 - Vendor inserted");
+
+    await client.query("COMMIT");
+
+    console.log("STEP 6 - COMMIT DONE");
+
+    await sendOTP(normalizedPhone);
 
     res.status(201).json({
       message: "Vendor registered successfully. Waiting for admin approval"
     });
+
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Register Vendor Error:", err);
     res.status(500).json({
       message: "Vendor registration failed"
     });
+  } finally {
+    client.release();
   }
 };
 
 
-/* ✅ Vendor Login */
-exports.loginVendor = async (req, res) => {
-  try {
-    const { identifier, password } = req.body;
-
-    if (!identifier || !password) {
-      return res.status(400).json({
-        error: "Email and password are required"
-      });
-    }
-
-    const vendor = await vendorService.findVendorByEmailOrPhone(identifier);
 
 
-    if (!vendor) {
-      return res.status(404).json({ error: "Vendor not found" });
-    }
-
-   if (vendor.is_approved === "declined") {
-  return res.status(403).json({
-    error: "Your account has been declined by admin"
-  });
-}
-
-if (vendor.is_approved === "pending") {
-  return res.status(403).json({
-    error: "Admin approval pending"
-  });
-}
 
 
-    const match = await bcrypt.compare(password, vendor.password_hash);
-    if (!match) {
-      return res.status(401).json({ error: "Invalid password" });
-    }
-
-    // 🔐 JWT WITHOUT role (frontend-friendly)
-    const token = jwt.sign(
-      { id: vendor.id, role: "vendor" },   // 👈 role removed
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.status(200).json({
-      message: "Vendor login successful",
-      token
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 /* ✅ Get Vendor Profile */
 exports.getVendorProfile = async (req, res) => {

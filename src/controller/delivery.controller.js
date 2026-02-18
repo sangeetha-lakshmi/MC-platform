@@ -46,8 +46,31 @@ const changePassword = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+const toggleActiveStatus = async (req, res) => {
+  try {
+    const deliveryId = req.user.id; // from JWT
+
+    const result = await pool.query(
+      `UPDATE delivery_partners
+       SET is_active = NOT is_active
+       WHERE id = $1
+       RETURNING is_active`,
+      [deliveryId]
+    );
+
+    res.json({
+      message: "Status updated successfully",
+      is_active: result.rows[0].is_active
+    });
+
+  } catch (error) {
+    console.error("Toggle Active Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   registerDeliveryPartner,
-  changePassword
+  changePassword,
+  toggleActiveStatus
 };

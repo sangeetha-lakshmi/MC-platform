@@ -10,7 +10,7 @@ const { toggleShopStatus } = require("../controller/vendor.controller");
 
 // existing
 router.post("/register", vendorController.registerVendor);
-router.post("/login", vendorController.loginVendor);
+
 router.patch(
   "/toggle-status",
   authMiddleware,
