@@ -1,5 +1,6 @@
 const pool = require("../../config/database");
 const { comparePassword } = require("../../utils/password.utils");
+const { sendOTP } = require("../../utils/twilio");
 
 exports.login = async ({ email, phone, profile_id, password }) => {
 
@@ -61,25 +62,27 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
   /* ================= CUSTOMER CHECK ================= */
   const customerResult = await pool.query(
-    `SELECT id, password_hash 
-     FROM app_data.customers 
-     WHERE email = $1 OR phone = $1`,
+    `SELECT id, password_hash, phone, phone_verified
+FROM app_data.customers 
+WHERE email = $1 OR phone = $1`,
     [identifier]
   );
 
   if (customerResult.rowCount > 0) {
-    const customer = customerResult.rows[0];
+  const customer = customerResult.rows[0];
 
-    const match = await comparePassword(password, customer.password_hash);
-if (!customer.phone_verified) {
-  throw new Error("Phone not verified");
+  const match = await comparePassword(password, customer.password_hash);
+  if (!match) throw new Error("Invalid password");
+
+  // 🔥 Only block if registered using phone AND not verified
+  if (customer.phone && customer.phone_verified === false) {
+    throw new Error("Phone not verified");
+  }
+
+  return { id: customer.id, role: "customer" };
 }
 
 
-    if (!match) throw new Error("Invalid password");
-
-    return { id: customer.id, role: "customer" };
-  }
 
   /* ================= VENDOR CHECK ================= */
   const vendorResult = await pool.query(
@@ -93,19 +96,17 @@ if (!customer.phone_verified) {
     if (vendor.is_approved !== "approved") {
       throw new Error("Admin approval pending");
     }
-
-    const match = await comparePassword(password, vendor.password_hash);
-   
 if (!vendor.phone_verified) {
   throw new Error("Phone not verified");
 }
-
+    const match = await comparePassword(password, vendor.password_hash);
+   
     if (!match) throw new Error("Invalid password");
 
     return { id: vendor.id, role: "vendor" };
   }
 
-return { id: vendor.id, role: "vendor" };
+throw new Error("User not found");
 };
 const { hashPassword } = require("../../utils/password.utils");
 
@@ -121,16 +122,27 @@ exports.registerCustomer = async (data) => {
   } = data;
 
   // 🔹 Duplicate check (email OR phone)
-  const existing = await pool.query(
-    `SELECT id
-     FROM app_data.customers
-     WHERE (email = $1 AND $1 IS NOT NULL)
-        OR (phone = $2 AND $2 IS NOT NULL)`,
-    [email ?? null, phone ?? null]
-  );
+ const existing = await pool.query(
+  `SELECT id, phone_verified 
+   FROM app_data.customers 
+   WHERE email = $1 OR phone = $2`,
+  [email || null, phone || null]
+);
 
-  if (existing.rowCount > 0) {
-    throw new Error("Customer already exists");
+if (existing.rows.length > 0) {
+
+    const customer = existing.rows[0];
+
+    // 🟢 If phone exists but not verified → resend OTP
+    if (phone && customer.phone_verified === false) {
+      await sendOTP(phone);
+
+      return {
+        message: "Phone already registered but not verified. OTP resent."
+      };
+    }
+
+    throw new Error("Customer already registered");
   }
 
   // 🔹 Hash password
@@ -152,5 +164,16 @@ exports.registerCustomer = async (data) => {
     ]
   );
 
-  return true;
+if (phone) {
+    await sendOTP(phone);
+
+    return {
+      message: "OTP sent. Please verify your phone."
+    };
+  }
+
+  return {
+    message: "Customer registered successfully"
+  };
 };
+//customer logic pending, will add soon

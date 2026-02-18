@@ -1,31 +1,45 @@
 const deliveryService = require("../modules/delivery/delivery.service");
 const bcrypt = require("bcrypt");
 const pool = require("../config/database"); // ✅ you forgot this
+const { sendOTP } = require("../utils/twilio");
+
 
 // 🔹 Register Delivery Partner
 const registerDeliveryPartner = async (req, res) => {
   try {
-    await deliveryService.register(req.body);
 
-    res.status(201).json({
-      message: "Delivery partner registered successfully. Await admin approval."
+    const result = await deliveryService.register(req.body);
+
+    // 🔹 If resend OTP case
+    if (result?.resendOTP) {
+      await sendOTP(result.phone);
+
+      return res.status(200).json({
+        message: result.message
+      });
+    }
+
+    // 🔹 New registration → send OTP
+    await sendOTP(req.body.phone);
+
+    return res.status(201).json({
+      message: "Delivery partner registered. OTP sent. Please verify phone."
     });
 
   } catch (err) {
 
-  // PostgreSQL duplicate key error
-  if (err.code === "23505") {
+    if (err.code === "23505") {
+      return res.status(400).json({
+        message: "Duplicate value detected"
+      });
+    }
+
     return res.status(400).json({
-      message: "Duplicate value detected (Email / Phone / License / Aadhar / PAN)"
+      message: err.message
     });
   }
-
-  res.status(400).json({
-    message: err.message
-  });
-}
-
 };
+
 
 // 🔹 Change Password
 const changePassword = async (req, res) => {

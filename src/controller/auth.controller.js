@@ -5,6 +5,7 @@ const { sendOTP, verifyOTP: verifyTwilioOTP } = require("../utils/twilio");
 const { hashPassword } = require("../utils/password.utils");
 const pool = require("../config/database");
 
+
 exports.login = async (req, res) => {
   try {
     const user = await authService.login(req.body);
@@ -28,6 +29,9 @@ exports.login = async (req, res) => {
       message: "Login successful",
       token
     });
+
+
+
 
   } catch (err) {
 
@@ -73,15 +77,25 @@ exports.registerCustomer = async (req, res) => {
   }
 
   try {
-    await authService.registerCustomer(req.body);
 
+   const result = await authService.registerCustomer(req.body);
+
+// 🔥 If resend required
+if (result?.resendOTP) {
+  await sendOTP(phone);
+
+  return res.status(200).json({
+    message: "Phone already registered but not verified. OTP resent."
+  });
+}
+
+
+    // If email only
     res.status(201).json({
       message: "Customer registered successfully"
     });
 
   } catch (err) {
-
-    console.log("REGISTER ERROR:", err.message);
 
     if (err.message === "Customer already exists") {
       return res.status(400).json({ message: err.message });

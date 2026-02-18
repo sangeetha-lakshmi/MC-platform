@@ -41,11 +41,23 @@ exports.registerVendor = async (req, res) => {
 
     // ✅ NEW: check duplicate email (SAFE FIX)
     const existingVendor = await vendorService.findVendorByEmail(email);
-    if (existingVendor) {
-      return res.status(409).json({
-        message: "Email already registered"
-      });
-    }
+   if (existingVendor) {
+
+  // If already verified → block
+  if (existingVendor.phone_verified) {
+    return res.status(409).json({
+      message: "Email already registered"
+    });
+  }
+
+  // If NOT verified → resend OTP
+  await sendOTP(phone);
+
+  return res.status(200).json({
+    message: "Phone number not verified. OTP resent."
+  });
+}
+
 
     const password_hash = await bcrypt.hash(password, 10);
 
@@ -66,8 +78,8 @@ exports.registerVendor = async (req, res) => {
     });
 await sendOTP(phone);
     res.status(201).json({
-      message: "Vendor registered successfully. Waiting for admin approval"
-    });
+  message: "OTP sent. Please verify your phone to activate account."
+});
   } catch (err) {
     console.error("Register Vendor Error:", err);
     res.status(500).json({
