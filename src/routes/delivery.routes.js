@@ -1,43 +1,70 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../config/database");
+
 const deliveryController = require("../controller/delivery.controller");
+const authMiddleware = require("../middlewares/auth.middleware");
 
 
+/* ================= DELIVERY REQUEST (PARCEL TYPE) ================= */
+
+// Create delivery request
 router.post("/request", async (req, res) => {
-  const {
-    user_id,
-    pickup_lat,
-    pickup_lng,
-    pickup_instructions,
-    receiver_name,
-    receiver_phone,
-    drop_lat,
-    drop_lng,
-    drop_address_text,
-    package_type,
-    weight,
-    item_value,
-    is_fragile,
-    payment_method
-  } = req.body;
-
-  const result = await pool.query(
-    `INSERT INTO delivery_requests
-    (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-     drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-    RETURNING *`,
-    [user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-     drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method]
-  );
-
-  res.json(result.rows[0]);
-});
-// Get delivery details
-router.get("/request/:id", async (req, res) => {
-
   try {
+
+    const {
+      user_id,
+      pickup_lat,
+      pickup_lng,
+      pickup_instructions,
+      receiver_name,
+      receiver_phone,
+      drop_lat,
+      drop_lng,
+      drop_address_text,
+      package_type,
+      weight,
+      item_value,
+      is_fragile,
+      payment_method
+    } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO delivery_requests
+      (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
+       drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+      RETURNING *`,
+      [
+        user_id,
+        pickup_lat,
+        pickup_lng,
+        pickup_instructions,
+        receiver_name,
+        receiver_phone,
+        drop_lat,
+        drop_lng,
+        drop_address_text,
+        package_type,
+        weight,
+        item_value,
+        is_fragile,
+        payment_method
+      ]
+    );
+
+    res.json(result.rows[0]);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// Get delivery request details
+router.get("/request/:id", async (req, res) => {
+  try {
+
     const { id } = req.params;
 
     const result = await pool.query(
@@ -46,14 +73,17 @@ router.get("/request/:id", async (req, res) => {
     );
 
     res.json(result.rows[0]);
+
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
-// Driver accepts order
+
+
+// Driver accepts parcel request
 router.put("/accept/:id", async (req, res) => {
   try {
+
     const { id } = req.params;
 
     await pool.query(
@@ -62,13 +92,17 @@ router.put("/accept/:id", async (req, res) => {
     );
 
     res.json({ message: "Driver Assigned" });
+
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
-// Update delivery status
+
+
+// Update parcel delivery status
 router.put("/status/:id", async (req, res) => {
   try {
+
     const { id } = req.params;
     const { status } = req.body;
 
@@ -78,13 +112,18 @@ router.put("/status/:id", async (req, res) => {
     );
 
     res.json({ message: "Status Updated" });
+
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
-// Get all delivery_partners of a user
+
+
+/* ================= DELIVERY PARTNER PROFILE ================= */
+
 router.get("/profile/:id", async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const result = await pool.query(
@@ -102,14 +141,14 @@ router.get("/profile/:id", async (req, res) => {
     res.json(result.rows[0]);
 
   } catch (err) {
-    console.error("PROFILE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Update Delivery Partner Profile
+
 router.put("/profile/:id", async (req, res) => {
   try {
+
     const { id } = req.params;
     const { name, phone, vehicle_type, vehicle_number } = req.body;
 
@@ -135,15 +174,39 @@ router.put("/profile/:id", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("UPDATE PROFILE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
 
-router.post("/register", deliveryController.registerDeliveryPartner);
+/* ================= AUTH ================= */
 
+router.post("/register", deliveryController.registerDeliveryPartner);
 router.put("/change-password/:id", deliveryController.changePassword);
 
-module.exports = router;
 
+/* ================= 🔥 STAGE 7 - READY ORDERS ================= */
+
+router.get(
+  "/available-orders",
+  authMiddleware,
+  deliveryController.getAvailableOrders
+);
+/* ================= 🔥 STAGE 8 - ACCEPT ORDER ================= */
+
+router.put(
+  "/accept-order",
+  authMiddleware,
+  deliveryController.acceptOrder
+);
+
+/* ================= 🔥 STAGE 9 - MARK DELIVERED ================= */
+
+router.put(
+  "/complete-order",
+  authMiddleware,
+  deliveryController.markAsDelivered
+);
+
+
+module.exports = router;

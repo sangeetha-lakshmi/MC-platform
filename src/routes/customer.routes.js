@@ -6,7 +6,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 // ========================================
 // Homepage — all nearby shops
-// ========================================
+// ========================================+
 
 router.post(
   "/nearby-shops",authMiddleware,
@@ -59,17 +59,17 @@ router.post(
 // ========================================
 
 router.get(
-  "/shop/:shopId/live-products",
+  "/shop/:shopId/live-products", authMiddleware,
   customerController.getLiveProductsByShop
 );
 
 
 // ========================================
-// 🔥 NEW: Global Live Product Search
+// 🔥 Global Live Product Search
 // ========================================
 
 router.get(
-  "/search-products",
+  "/search-products",authMiddleware,
   customerController.searchLiveProducts
 );
 
@@ -77,16 +77,27 @@ router.get(
 /* ================= HOMEPAGE CATEGORIES ================= */
 router.get("/categories", authMiddleware, customerController.getHomepageCategories);
 
+
 /* ================= HOMEPAGE SUB-CATEGORIES ================= */
 router.get(
   "/subcategories/:category_id",
   authMiddleware,
   customerController.getSubCategories
 );
+
+
 /* ================= ADD TO CART ================= */
 router.post("/add-to-cart",authMiddleware,customerController.addToCart);
 router.get("/cart/:customer_id", authMiddleware, customerController.getCartItems);
 router.post("/place-order", authMiddleware, customerController.placeOrder);
+
+
+/* ================= 🔥 MY ORDERS (NEW) ================= */
+router.get(
+  "/my-orders",
+  authMiddleware, // 🔐 require login
+  customerController.getMyOrders
+);
 
 
 module.exports = router;

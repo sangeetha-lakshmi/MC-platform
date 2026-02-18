@@ -191,6 +191,30 @@ exports.searchLiveProducts = async (req, res) => {
     });
   }
 };
+
+/* ================= GET HOMEPAGE CATEGORIES ================= */
+
+exports.getHomepageCategories = async (req, res) => {
+  try {
+
+    const data = await customerService.getCategoriesWithSubCategories();
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("CATEGORY ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch categories",
+      error: error.message
+    });
+  }
+};
 /* ================= SUBCATEGORIES BY CATEGORY ================= */
 
 exports.getSubCategories = async (req, res) => {
@@ -292,6 +316,32 @@ exports.placeOrder = async (req, res) => {
   } catch (error) {
     res.status(400).json({
       message: error.message
+    });
+  }
+};
+/* ================= MY ORDERS ================= */
+
+exports.getMyOrders = async (req, res) => {
+  try {
+
+    const customerId = req.user.id; // from auth middleware
+
+    const orders =
+      await customerService.getCustomerOrders(customerId);
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders
+    });
+
+  } catch (error) {
+
+    console.error("MY ORDERS ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch orders",
+      error: error.message
     });
   }
 };
