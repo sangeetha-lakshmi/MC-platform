@@ -45,7 +45,38 @@ exports.getNearbyVendorsByCategoryAndSubCategory = async ({
         + sin(radians($1))
         * sin(radians(v.latitude))
       ) <= $5
-    ORDER BY distance ASC
+   ORDER BY
+  CASE
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 2 THEN 1
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 3 THEN 2
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 4 THEN 3
+
+    ELSE 4
+  END,
+
+  distance ASC
+
+
   `;
 
   const result = await pool.query(query, [
@@ -91,7 +122,37 @@ exports.getNearbyVendors = async ({
         + sin(radians($1))
         * sin(radians(v.latitude))
       ) <= $3
-    ORDER BY distance ASC
+ ORDER BY
+  CASE
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 2 THEN 1
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 3 THEN 2
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 4 THEN 3
+
+    ELSE 4
+  END,
+
+  distance ASC
+
   `;
 
   const result = await pool.query(query, [
@@ -152,7 +213,38 @@ exports.getShopsByCategory = async ({
           * sin(radians(v.latitude))
         )
       ) <= $4
-    ORDER BY distance ASC
+    ORDER BY
+  CASE
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 2 THEN 1
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 3 THEN 2
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 4 THEN 3
+
+    ELSE 4
+  END,
+
+  distance ASC
+
+
   `;
 
   const result = await pool.query(query, [
@@ -203,7 +295,37 @@ exports.getVegNonVegShops = async ({
           * sin(radians(v.latitude))
         )
       ) <= $4
-    ORDER BY distance ASC
+    ORDER BY
+  CASE
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 2 THEN 1
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 3 THEN 2
+
+    WHEN 6371 * acos(
+      cos(radians($1))
+      * cos(radians(v.latitude))
+      * cos(radians(v.longitude) - radians($2))
+      + sin(radians($1))
+      * sin(radians(v.latitude))
+    ) <= 4 THEN 3
+
+    ELSE 4
+  END,
+
+  distance ASC
+
   `;
 
   const result = await pool.query(query, [
