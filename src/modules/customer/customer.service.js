@@ -271,3 +271,4 @@ exports.getSubCategoriesByCategory = async (categoryId) => {
 
   return result.rows;
 };
+//push by sangeetha
