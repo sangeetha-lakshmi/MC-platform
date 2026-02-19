@@ -253,24 +253,26 @@ exports.addToCart = async (req, res) => {
   try {
 
     const customerId = req.user.id;   // 🔐 from token
-    const { vendor_id, product_id, quantity } = req.body;
+    const { product_id, quantity } = req.body;
 
-    if (!vendor_id || !product_id) {
+    // ✅ validate
+    if (!product_id) {
       return res.status(400).json({
-        message: "vendor_id and product_id required"
+        message: "product_id is required"
       });
     }
 
-    await customerService.addToCart({
+    // ✅ call service (vendor id backend la detect aagum)
+    const cartItem = await customerService.addToCart({
       customerId,
-      vendorId: vendor_id,
       productId: product_id,
       quantity: quantity || 1
     });
 
     res.status(200).json({
       success: true,
-      message: "Item added to cart"
+      message: "Item added to cart",
+      data: cartItem
     });
 
   } catch (error) {

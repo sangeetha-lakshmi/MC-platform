@@ -271,3 +271,78 @@ exports.getSubCategoriesByCategory = async (categoryId) => {
 
   return result.rows;
 };
+
+
+/* =====================================================
+   ADD TO CART
+===================================================== */
+
+exports.addToCart = async ({ customerId, productId, quantity }) => {
+
+  // 1️⃣ Get vendor from product table
+  const productQuery = `
+    SELECT vendor_id
+    FROM products
+    WHERE id = $1 AND is_live = true
+  `;
+
+  const product = await pool.query(productQuery, [productId]);
+
+  if (product.rows.length === 0) {
+    throw new Error("Product not available");
+  }
+
+  const vendorId = product.rows[0].vendor_id;
+
+  // 2️⃣ Check existing cart item
+  const checkQuery = `
+    SELECT *
+    FROM cart_items
+    WHERE customer_id = $1
+      AND product_id = $2
+  `;
+
+  const existing = await pool.query(checkQuery, [customerId, productId]);
+
+  // 3️⃣ If exists → update qty
+  if (existing.rows.length > 0) {
+
+    const updateQuery = `
+      UPDATE cart_items
+      SET quantity = quantity + $1
+      WHERE customer_id = $2
+        AND product_id = $3
+      RETURNING *
+    `;
+
+    const updated = await pool.query(updateQuery, [
+      quantity,
+      customerId,
+      productId
+    ]);
+
+    return updated.rows[0];
+  }
+
+  // 4️⃣ Insert new cart item
+  const insertQuery = `
+    INSERT INTO cart_items (
+      customer_id,
+      vendor_id,
+      product_id,
+      quantity
+    )
+    VALUES ($1, $2, $3, $4)
+    RETURNING *
+  `;
+
+  const inserted = await pool.query(insertQuery, [
+    customerId,
+    vendorId,
+    productId,
+    quantity
+  ]);
+
+  return inserted.rows[0];
+};
+
