@@ -156,64 +156,83 @@ exports.updateCustomerProfile = async (req, res) => {
   }
 };
 
-
+const crypto = require("crypto");
 
 exports.forgotPassword = async (req, res) => {
   const { email, phone } = req.body;
 
   try {
+    if (!email && !phone) {
+      return res.status(400).json({
+        message: "Email or phone is required"
+      });
+    }
+
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
+
+    let tableFound = null;
+
+    /* ================= IDENTIFY USER TABLE ================= */
+    for (let table of tables) {
+      const result = await pool.query(
+        email
+          ? `SELECT id FROM ${table} WHERE email=$1`
+          : `SELECT id FROM ${table} WHERE phone=$1`,
+        [email || phone]
+      );
+
+      if (result.rowCount > 0) {
+        tableFound = table;
+        break;
+      }
+    }
+
+    if (!tableFound) {
+      return res.status(404).json({ message: "Account not found" });
+    }
 
     /* ================= EMAIL FLOW ================= */
     if (email) {
-      const user = await pool.query(
-        "SELECT * FROM users WHERE email=$1",
-        [email]
-      );
-
-      if (user.rows.length === 0)
-        return res.status(404).json({ message: "User not found" });
-
       const token = crypto.randomBytes(32).toString("hex");
-      const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+      const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
       await pool.query(
-        `UPDATE users 
-         SET reset_token=$1, reset_token_expiry=$2
+        `UPDATE ${tableFound}
+         SET reset_token=$1,
+             reset_token_expiry=$2
          WHERE email=$3`,
         [token, expiry, email]
       );
 
-      const resetLink = `http://localhost:3000/reset-password/${token}`;
+      const resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
       await transporter.sendMail({
         to: email,
         subject: "Reset Your Password",
         html: `
           <h3>Password Reset</h3>
-          <p>Click below link to reset password:</p>
-          <a href="${resetLink}">${resetLink}</a>
+          <p>This link is valid for 15 minutes.</p>
+          <a href="${resetLink}">Click here to reset password</a>
         `
       });
 
-      return res.json({ message: "Reset link sent to email" });
+      return res.json({
+        message: "Reset link sent to registered email"
+      });
     }
 
     /* ================= PHONE FLOW ================= */
     if (phone) {
-      const user = await pool.query(
-        "SELECT * FROM users WHERE phone=$1",
-        [phone]
-      );
-
-      if (user.rows.length === 0)
-        return res.status(404).json({ message: "User not found" });
-
       await sendOTP(phone);
 
-      return res.json({ message: "OTP sent to phone" });
+      return res.json({
+        message: "OTP sent to registered phone number"
+      });
     }
-
-    return res.status(400).json({ message: "Email or Phone required" });
 
   } catch (error) {
     console.error(error);
@@ -228,17 +247,45 @@ exports.verifyOTP = async (req, res) => {
   try {
     const response = await verifyTwilioOTP(phone, otp);
 
-    if (response.status !== "approved")
+    if (response.status !== "approved") {
       return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    await pool.query(
-      "UPDATE users SET otp_verified=true WHERE phone=$1",
-      [phone]
-    );
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
 
-    res.json({ message: "OTP verified successfully" });
+    let updated = false;
+
+    for (let table of tables) {
+      const result = await pool.query(
+        `UPDATE ${table}
+         SET phone_verified=true
+         WHERE phone=$1
+         RETURNING id`,
+        [phone]
+      );
+
+      if (result.rowCount > 0) {
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({
+        message: "Account not found"
+      });
+    }
+
+    return res.json({
+      message: "OTP verified successfully"
+    });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -248,59 +295,140 @@ exports.resetPassword = async (req, res) => {
   const { token, phone, password, confirmPassword } = req.body;
 
   try {
+    if (!password || !confirmPassword)
+      return res.status(400).json({ message: "Password required" });
 
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 
-    const hashedPassword = await hashPassword(password);
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
 
-    /* ================= EMAIL RESET ================= */
+    let tableFound = null;
+
+    /* ================= EMAIL TOKEN RESET ================= */
     if (token) {
-      const user = await pool.query(
-        `SELECT * FROM users 
-         WHERE reset_token=$1 
-         AND reset_token_expiry > NOW()`,
-        [token]
-      );
+      for (let table of tables) {
+        const result = await pool.query(
+          `SELECT id FROM ${table}
+           WHERE reset_token=$1
+           AND reset_token_expiry > NOW()`,
+          [token]
+        );
 
-      if (user.rows.length === 0)
-        return res.status(400).json({ message: "Invalid or expired token" });
+        if (result.rowCount > 0) {
+          tableFound = table;
+          break;
+        }
+      }
+
+      if (!tableFound) {
+        return res.status(400).json({
+          message: "Invalid or expired reset link"
+        });
+      }
+
+      const hashedPassword = await hashPassword(password);
 
       await pool.query(
-        `UPDATE users 
-         SET password=$1,
+        `UPDATE ${tableFound}
+         SET password_hash=$1,
              reset_token=NULL,
              reset_token_expiry=NULL
          WHERE reset_token=$2`,
         [hashedPassword, token]
       );
 
-      return res.json({ message: "Password reset successful (Email)" });
+      return res.json({
+        message: "Password reset successful"
+      });
     }
 
-    /* ================= PHONE RESET ================= */
+    /* ================= PHONE OTP RESET ================= */
     if (phone) {
-      const user = await pool.query(
-        `SELECT * FROM users 
-         WHERE phone=$1 AND otp_verified=true`,
-        [phone]
-      );
+      for (let table of tables) {
+        const result = await pool.query(
+          `SELECT id FROM ${table}
+           WHERE phone=$1 AND phone_verified=true`,
+          [phone]
+        );
 
-      if (user.rows.length === 0)
-        return res.status(400).json({ message: "OTP not verified" });
+        if (result.rowCount > 0) {
+          tableFound = table;
+          break;
+        }
+      }
+
+      if (!tableFound) {
+        return res.status(400).json({
+          message: "Phone not verified or account not found"
+        });
+      }
+
+      const hashedPassword = await hashPassword(password);
 
       await pool.query(
-        `UPDATE users 
-         SET password=$1,
-             otp_verified=false
+        `UPDATE ${tableFound}
+         SET password_hash=$1
          WHERE phone=$2`,
         [hashedPassword, phone]
       );
 
-      return res.json({ message: "Password reset successful (Phone)" });
+      return res.json({
+        message: "Password reset successful"
+      });
     }
 
-    return res.status(400).json({ message: "Token or phone required" });
+    return res.status(400).json({
+      message: "Token or phone required"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.verifyResetToken = async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const tables = ["vendors", "app_data.customers", "delivery_partners"];
+
+    let tableFound = null;
+
+    for (let table of tables) {
+      const result = await pool.query(
+        `SELECT id FROM ${table}
+         WHERE reset_token=$1
+         AND reset_token_expiry > NOW()`,
+        [token]
+      );
+
+      if (result.rowCount > 0) {
+        tableFound = table;
+        break;
+      }
+    }
+
+    if (!tableFound) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    // 🔥 Mark reset_verified = true
+    await pool.query(
+      `UPDATE ${tableFound}
+       SET reset_verified=true
+       WHERE reset_token=$1`,
+      [token]
+    );
+
+    return res.json({
+      message: "Token verified successfully. You can now reset password."
+    });
 
   } catch (error) {
     res.status(500).json({ error: error.message });

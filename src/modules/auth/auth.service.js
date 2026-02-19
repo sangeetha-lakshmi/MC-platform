@@ -86,7 +86,7 @@ WHERE email = $1 OR phone = $1`,
 
   /* ================= VENDOR CHECK ================= */
   const vendorResult = await pool.query(
-    "SELECT id, password_hash, is_approved FROM vendors WHERE email = $1",
+    "SELECT id, password_hash, is_approved, phone_verified FROM vendors WHERE email = $1 OR phone = $1",
     [identifier]
   );
 
