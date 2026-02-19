@@ -11,8 +11,12 @@ exports.getAlldelivery_partners = async (req, res) => {
   try {
     const { status } = req.query;
 
-    let query = `SELECT * FROM delivery_partners WHERE phone_verified = true`;
     let values = [];
+    let query = `
+      SELECT *
+      FROM delivery_partners
+      WHERE phone_verified = true
+    `;
 
     const validStatus = ["approved", "pending", "declined"];
 
@@ -28,8 +32,8 @@ exports.getAlldelivery_partners = async (req, res) => {
     const result = await pool.query(query, values);
 
     res.json({
-      total: result.rows.length,
-      data: result.rows,
+      total: result.rowCount,
+      data: result.rows
     });
 
   } catch (error) {

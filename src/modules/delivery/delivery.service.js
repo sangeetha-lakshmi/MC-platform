@@ -85,7 +85,7 @@ if (emailCheck.rows.length > 0) {
 
 // 2️⃣ Phone check
 const phoneCheck = await db.query(
-  "SELECT id, phone_verified FROM delivery_partners WHERE phone = $1",
+  "SELECT id, phone_verified, is_approved FROM delivery_partners WHERE phone = $1",
   [phone]
 );
 
@@ -93,12 +93,19 @@ if (phoneCheck.rows.length > 0) {
 
   const existing = phoneCheck.rows[0];
 
+  // 🔹 If phone not verified → resend OTP
   if (!existing.phone_verified) {
     await sendOTP(phone);
 
     return {
+      resendOTP: true,
       message: "Phone already registered but not verified. OTP resent."
     };
+  }
+
+  // 🔹 If verified but waiting admin approval
+  if (existing.phone_verified && existing.is_approved === "pending") {
+    throw new Error("Admin approval pending");
   }
 
   throw new Error("Phone number already registered");
@@ -186,6 +193,12 @@ if (pan_number) {
       profileId
     ]
   );
+  // 🔥 SEND OTP AFTER INSERT
+await sendOTP(phone);
+
+return {
+  message: "OTP sent. Please verify your phone."
+};
 };
 module.exports = {
   register

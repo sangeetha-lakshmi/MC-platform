@@ -10,20 +10,14 @@ const registerDeliveryPartner = async (req, res) => {
 
     const result = await deliveryService.register(req.body);
 
-    // 🔹 If resend OTP case
     if (result?.resendOTP) {
-      await sendOTP(result.phone);
-
       return res.status(200).json({
         message: result.message
       });
     }
 
-    // 🔹 New registration → send OTP
-    await sendOTP(req.body.phone);
-
     return res.status(201).json({
-      message: "Delivery partner registered. OTP sent. Please verify phone."
+      message: result.message
     });
 
   } catch (err) {
@@ -39,7 +33,6 @@ const registerDeliveryPartner = async (req, res) => {
     });
   }
 };
-
 
 // 🔹 Change Password
 const changePassword = async (req, res) => {

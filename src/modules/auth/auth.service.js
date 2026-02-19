@@ -86,19 +86,22 @@ WHERE email = $1 OR phone = $1`,
 
   /* ================= VENDOR CHECK ================= */
   const vendorResult = await pool.query(
-    "SELECT id, password_hash, is_approved FROM vendors WHERE email = $1",
+     `SELECT id, password_hash, is_approved, phone_verified
+   FROM vendors
+   WHERE email = $1 OR phone = $1`,
     [identifier]
   );
 
   if (vendorResult.rowCount > 0) {
     const vendor = vendorResult.rows[0];
 
+    if (!vendor.phone_verified) {
+    throw new Error("Phone not verified");
+  }
     if (vendor.is_approved !== "approved") {
       throw new Error("Admin approval pending");
     }
-if (!vendor.phone_verified) {
-  throw new Error("Phone not verified");
-}
+
     const match = await comparePassword(password, vendor.password_hash);
    
     if (!match) throw new Error("Invalid password");

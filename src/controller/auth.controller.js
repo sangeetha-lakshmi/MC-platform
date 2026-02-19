@@ -72,31 +72,29 @@ exports.registerCustomer = async (req, res) => {
 
   try {
 
-   const result = await authService.registerCustomer(req.body);
+  const result = await authService.registerCustomer(req.body);
 
-// 🔥 If resend required
-if (result?.resendOTP) {
-  await sendOTP(phone);
+  // 🔥 If resend required
+  if (result?.resendOTP) {
+    return res.status(200).json({
+      message: "Phone already registered but not verified. OTP resent."
+    });
+  }
 
-  return res.status(200).json({
-    message: "Phone already registered but not verified. OTP resent."
-  });
+  // 🔥 If service returned custom message (OTP case or email case)
+  if (result?.message) {
+    return res.status(201).json(result);
+  }
+
+} catch (err) {
+
+  if (err.message === "Customer already registered") {
+    return res.status(400).json({ message: err.message });
+  }
+
+  return res.status(500).json({ message: err.message });
 }
 
-
-    // If email only
-    res.status(201).json({
-      message: "Customer registered successfully"
-    });
-
-  } catch (err) {
-
-    if (err.message === "Customer already exists") {
-      return res.status(400).json({ message: err.message });
-    }
-
-    return res.status(500).json({ message: err.message });
-  }
 };
 
 
