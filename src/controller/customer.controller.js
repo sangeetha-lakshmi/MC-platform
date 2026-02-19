@@ -412,3 +412,61 @@ exports.getMyOrders = async (req, res) => {
     });
   }
 };
+exports.getHomepageNearbyShops = async (req, res) => {
+  try {
+
+    const customerId = req.user.id;  // 🔐 from token
+
+    const shops =
+      await customerService.getHomepageNearbyShops(customerId);
+
+    res.json({
+      success: true,
+      count: shops.length,
+      data: shops
+    });
+
+  } catch (error) {
+
+    if (error.message === "Location not set") {
+      return res.status(400).json({
+        message: "Customer location not set"
+      });
+    }
+
+    res.status(500).json({
+      message: "Unable to fetch nearby shops",
+      error: error.message
+    });
+  }
+};
+exports.updateLocation = async (req, res) => {
+  try {
+
+    const customerId = req.user.id;
+    const { latitude, longitude } = req.body;
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        message: "Latitude and longitude are required"
+      });
+    }
+
+    await customerService.saveCustomerLocation({
+      customerId,
+      latitude,
+      longitude
+    });
+
+    res.json({
+      success: true,
+      message: "Location updated successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Unable to update location",
+      error: error.message
+    });
+  }
+};

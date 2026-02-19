@@ -51,13 +51,19 @@ console.log("User from DB:", user);
 };
 //Customer registration controller
 exports.registerCustomer = async (req, res) => {
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password,latitude,longitude } = req.body;
 
   if (!name || !password || (!email && !phone)) {
     return res.status(400).json({
       message: "Name, password and email or phone are required"
     });
   }
+  // 🔥 NEW — Location mandatory
+if (latitude === undefined || longitude === undefined) {
+  return res.status(400).json({
+    message: "Location (latitude & longitude) is required"
+  });
+}
   try {
     await authService.registerCustomer(req.body);
 

@@ -97,6 +97,7 @@ return { id: vendor.id, role: "vendor" };
 };
 const { hashPassword } = require("../../utils/password.utils");
 
+// Customer Registration
 exports.registerCustomer = async (data) => {
   const {
     name,
@@ -134,8 +135,8 @@ exports.registerCustomer = async (data) => {
       email ?? null,
       phone ?? null,
       passwordHash,
-      latitude ?? null,
-      longitude ?? null,
+      latitude,
+      longitude,
       address ?? null
     ]
   );

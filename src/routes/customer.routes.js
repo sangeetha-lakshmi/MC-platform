@@ -100,4 +100,16 @@ router.get(
 );
 
 
+router.get(
+  "/homepage",
+  authMiddleware,
+  customerController.getHomepageNearbyShops
+);
+
+router.put(
+  "/location",
+  authMiddleware,
+  customerController.updateLocation
+);
+
 module.exports = router;

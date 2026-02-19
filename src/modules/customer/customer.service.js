@@ -272,3 +272,47 @@ exports.getSubCategoriesByCategory = async (categoryId) => {
   return result.rows;
 };
 //push by sangeetha
+exports.getHomepageNearbyShops = async (customerId) => {
+
+  // 🔹 Get customer location
+  const locationQuery = `
+    SELECT latitude, longitude
+    FROM app_data.customers
+    WHERE id = $1
+  `;
+
+  const locationResult = await pool.query(locationQuery, [customerId]);
+
+  const location = locationResult.rows[0];
+
+  if (!location || !location.latitude || !location.longitude) {
+    throw new Error("Location not set");
+  }
+
+  // 🔹 Use your existing nearby vendors function
+  const shops = await exports.getNearbyVendors({
+    customerLat: location.latitude,
+    customerLng: location.longitude
+  });
+
+  return shops;
+};
+exports.saveCustomerLocation = async ({
+  customerId,
+  latitude,
+  longitude
+}) => {
+
+  const query = `
+    UPDATE app_data.customers
+    SET latitude = $1,
+        longitude = $2
+    WHERE id = $3
+  `;
+
+  await pool.query(query, [
+    latitude,
+    longitude,
+    customerId
+  ]);
+};
