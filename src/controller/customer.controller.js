@@ -55,14 +55,37 @@ exports.getNearbyShopsByCategory = async (req, res) => {
 // =====================================================
 
 exports.getNearbyShops = async (req, res) => {
-  const { latitude, longitude } = req.body;
+  try {
 
-  const data = await customerService.getNearbyVendors({
-    customerLat: Number(latitude),
-    customerLng: Number(longitude)
-  });
+    const { latitude, longitude } = req.body;
 
-  res.json(data);
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        message: "latitude and longitude are required"
+      });
+    }
+
+    const data = await customerService.getNearbyVendors({
+      customerLat: Number(latitude),
+      customerLng: Number(longitude)
+    });
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("NEARBY SHOPS ERROR 👉", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to fetch nearby shops",
+      error: error.message
+    });
+  }
 };
 
 
@@ -72,10 +95,27 @@ exports.getNearbyShops = async (req, res) => {
 // =====================================================
 
 exports.searchShop = async (req, res) => {
-  const { name } = req.query;
+  try {
 
-  const data = await customerService.searchShopByName(name);
-  res.json(data);
+    const { name } = req.query;
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Shop name is required"
+      });
+    }
+
+    const data = await customerService.searchShopByName(name);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 
@@ -85,15 +125,27 @@ exports.searchShop = async (req, res) => {
 
 exports.getCategoryShops = async (req, res) => {
   try {
+
     const { latitude, longitude, category } = req.body;
 
+    if (latitude === undefined || longitude === undefined || !category) {
+      return res.status(400).json({
+        message: "latitude, longitude and category are required"
+      });
+    }
+
     const data = await customerService.getShopsByCategory({
-       customerLat: Number(latitude),
-    customerLng: Number(longitude),
+      customerLat: Number(latitude),
+      customerLng: Number(longitude),
       category
     });
 
-    res.json(data);
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -106,19 +158,32 @@ exports.getCategoryShops = async (req, res) => {
 
 exports.getFoodTypeShops = async (req, res) => {
   try {
+
     const { latitude, longitude, foodType } = req.body;
+
+    if (latitude === undefined || longitude === undefined || !foodType) {
+      return res.status(400).json({
+        message: "latitude, longitude and foodType are required"
+      });
+    }
 
     const data = await customerService.getVegNonVegShops({
       customerLat: Number(latitude),
-    customerLng: Number(longitude),
+      customerLng: Number(longitude),
       foodType
     });
 
-    res.json(data);
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 /* ================= GET HOMEPAGE CATEGORIES ================= */
 
@@ -144,12 +209,14 @@ exports.getHomepageCategories = async (req, res) => {
   }
 };
 
+
 // =====================================================
 // 🔥 SHOP CLICK → GET LIVE PRODUCTS
 // =====================================================
 
 exports.getLiveProductsByShop = async (req, res) => {
   try {
+
     const { shopId } = req.params;
 
     const products = await productService.getLiveProductsByShop(shopId);
@@ -157,20 +224,21 @@ exports.getLiveProductsByShop = async (req, res) => {
     res.status(200).json(products);
 
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({ message: "Server Error" });
   }
 };
 
 
-
 // =====================================================
-// 🔥🔥🔥 NEW FUNCTION ADDED
-// 🔍 GLOBAL LIVE PRODUCT SEARCH
+// 🔥 GLOBAL LIVE PRODUCT SEARCH
 // =====================================================
 
 exports.searchLiveProducts = async (req, res) => {
   try {
+
     const { query } = req.query;
 
     if (!query) {
@@ -185,7 +253,9 @@ exports.searchLiveProducts = async (req, res) => {
     res.status(200).json(products);
 
   } catch (error) {
+
     console.error("SEARCH ERROR 👉", error);
+
     res.status(500).json({
       message: "Unable to search products",
       error: error.message
@@ -193,29 +263,7 @@ exports.searchLiveProducts = async (req, res) => {
   }
 };
 
-/* ================= GET HOMEPAGE CATEGORIES ================= */
 
-exports.getHomepageCategories = async (req, res) => {
-  try {
-
-    const data = await customerService.getCategoriesWithSubCategories();
-
-    res.status(200).json({
-      success: true,
-      count: data.length,
-      data
-    });
-
-  } catch (error) {
-
-    console.error("CATEGORY ERROR 👉", error);
-
-    res.status(500).json({
-      message: "Unable to fetch categories",
-      error: error.message
-    });
-  }
-};
 /* ================= SUBCATEGORIES BY CATEGORY ================= */
 
 exports.getSubCategories = async (req, res) => {
@@ -248,7 +296,10 @@ exports.getSubCategories = async (req, res) => {
     });
   }
 };
+
+
 /* ================= ADD TO CART ================= */
+
 exports.addToCart = async (req, res) => {
   try {
 
@@ -274,32 +325,44 @@ exports.addToCart = async (req, res) => {
     });
 
   } catch (error) {
+
     res.status(400).json({
       message: error.message
     });
   }
 };
 
+
 exports.getCartItems = async (req, res) => {
+  try {
 
-  const customerId = req.user.id;
+    const customerId = req.user.id;
 
-  const data = await customerService.getCartItems(customerId);
+    const data = await customerService.getCartItems(customerId);
 
-  res.json({
-    success: true,
-    count: data.length,
-    data
-  });
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
 };
+
+
 /* ================= PLACE ORDER ================= */
+
 exports.placeOrder = async (req, res) => {
   try {
 
     console.log("BODY 👉", req.body);
 
     const customerId = req.user.id;
-
 
     if (isNaN(customerId)) {
       return res.status(400).json({
@@ -315,17 +378,20 @@ exports.placeOrder = async (req, res) => {
     res.status(200).json(result);
 
   } catch (error) {
+
     res.status(400).json({
       message: error.message
     });
   }
 };
+
+
 /* ================= MY ORDERS ================= */
 
 exports.getMyOrders = async (req, res) => {
   try {
 
-    const customerId = req.user.id; // from auth middleware
+    const customerId = req.user.id;
 
     const orders =
       await customerService.getCustomerOrders(customerId);

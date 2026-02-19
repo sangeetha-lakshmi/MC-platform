@@ -29,7 +29,7 @@ exports.getNearbyVendorsByCategoryAndSubCategory = async ({
   customerLng,
   category,
   subCategory,
-  radius = 4
+  radius = 2
 }) => {
 
   const query = `
@@ -81,7 +81,7 @@ exports.getNearbyVendorsByCategoryAndSubCategory = async ({
 exports.getNearbyVendors = async ({
   customerLat,
   customerLng,
-  radius = 4
+  radius = 2
 }) => {
 
   const query = `
@@ -143,7 +143,7 @@ exports.getShopsByCategory = async ({
   customerLat,
   customerLng,
   category,
-  radius = 4
+  radius = 2
 }) => {
 
   const query = `
@@ -185,7 +185,7 @@ exports.getVegNonVegShops = async ({
   customerLat,
   customerLng,
   foodType,
-  radius = 4
+  radius = 2
 }) => {
 
   const query = `
