@@ -1,7 +1,10 @@
 const jwt = require("jsonwebtoken");
 const authService = require("../modules/auth/auth.service");
+const transporter = require("../config/email");
+const { sendOTP, verifyOTP: verifyTwilioOTP } = require("../utils/twilio");
+const { hashPassword } = require("../utils/password.utils");
 const pool = require("../config/database");
-const { sendOTP } = require("../utils/twilio");
+
 
 exports.login = async (req, res) => {
   try {
@@ -26,6 +29,9 @@ exports.login = async (req, res) => {
       message: "Login successful",
       token
     });
+
+
+
 
   } catch (err) {
 
@@ -145,5 +151,284 @@ exports.updateCustomerProfile = async (req, res) => {
     console.log("UPDATE ERROR:", err.message);
 
     res.status(500).json({ message: err.message });
+  }
+};
+
+const crypto = require("crypto");
+
+exports.forgotPassword = async (req, res) => {
+  const { email, phone } = req.body;
+
+  try {
+    if (!email && !phone) {
+      return res.status(400).json({
+        message: "Email or phone is required"
+      });
+    }
+
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
+
+    let tableFound = null;
+
+    /* ================= IDENTIFY USER TABLE ================= */
+    for (let table of tables) {
+      const result = await pool.query(
+        email
+          ? `SELECT id FROM ${table} WHERE email=$1`
+          : `SELECT id FROM ${table} WHERE phone=$1`,
+        [email || phone]
+      );
+
+      if (result.rowCount > 0) {
+        tableFound = table;
+        break;
+      }
+    }
+
+    if (!tableFound) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    /* ================= EMAIL FLOW ================= */
+    if (email) {
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+      await pool.query(
+        `UPDATE ${tableFound}
+         SET reset_token=$1,
+             reset_token_expiry=$2
+         WHERE email=$3`,
+        [token, expiry, email]
+      );
+
+      const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+
+      await transporter.sendMail({
+        to: email,
+        subject: "Reset Your Password",
+        html: `
+          <h3>Password Reset</h3>
+          <p>This link is valid for 15 minutes.</p>
+          <a href="${resetLink}">Click here to reset password</a>
+        `
+      });
+
+      return res.json({
+        message: "Reset link sent to registered email"
+      });
+    }
+
+    /* ================= PHONE FLOW ================= */
+    if (phone) {
+      await sendOTP(phone);
+
+      return res.json({
+        message: "OTP sent to registered phone number"
+      });
+    }
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+exports.verifyOTP = async (req, res) => {
+  const { phone, otp } = req.body;
+
+  try {
+    const response = await verifyTwilioOTP(phone, otp);
+
+    if (response.status !== "approved") {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
+
+    let updated = false;
+
+    for (let table of tables) {
+      const result = await pool.query(
+        `UPDATE ${table}
+         SET phone_verified=true
+         WHERE phone=$1
+         RETURNING id`,
+        [phone]
+      );
+
+      if (result.rowCount > 0) {
+        updated = true;
+        break;
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({
+        message: "Account not found"
+      });
+    }
+
+    return res.json({
+      message: "OTP verified successfully"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+exports.resetPassword = async (req, res) => {
+  const { token, phone, password, confirmPassword } = req.body;
+
+  try {
+    if (!password || !confirmPassword)
+      return res.status(400).json({ message: "Password required" });
+
+    if (password !== confirmPassword)
+      return res.status(400).json({ message: "Passwords do not match" });
+
+    const tables = [
+      "vendors",
+      "app_data.customers",
+      "delivery_partners"
+    ];
+
+    let tableFound = null;
+
+    /* ================= EMAIL TOKEN RESET ================= */
+    if (token) {
+      for (let table of tables) {
+        const result = await pool.query(
+          `SELECT id FROM ${table}
+           WHERE reset_token=$1
+           AND reset_token_expiry > NOW()`,
+          [token]
+        );
+
+        if (result.rowCount > 0) {
+          tableFound = table;
+          break;
+        }
+      }
+
+      if (!tableFound) {
+        return res.status(400).json({
+          message: "Invalid or expired reset link"
+        });
+      }
+
+      const hashedPassword = await hashPassword(password);
+
+      await pool.query(
+        `UPDATE ${tableFound}
+         SET password_hash=$1,
+             reset_token=NULL,
+             reset_token_expiry=NULL
+         WHERE reset_token=$2`,
+        [hashedPassword, token]
+      );
+
+      return res.json({
+        message: "Password reset successful"
+      });
+    }
+
+    /* ================= PHONE OTP RESET ================= */
+    if (phone) {
+      for (let table of tables) {
+        const result = await pool.query(
+          `SELECT id FROM ${table}
+           WHERE phone=$1 AND phone_verified=true`,
+          [phone]
+        );
+
+        if (result.rowCount > 0) {
+          tableFound = table;
+          break;
+        }
+      }
+
+      if (!tableFound) {
+        return res.status(400).json({
+          message: "Phone not verified or account not found"
+        });
+      }
+
+      const hashedPassword = await hashPassword(password);
+
+      await pool.query(
+        `UPDATE ${tableFound}
+         SET password_hash=$1
+         WHERE phone=$2`,
+        [hashedPassword, phone]
+      );
+
+      return res.json({
+        message: "Password reset successful"
+      });
+    }
+
+    return res.status(400).json({
+      message: "Token or phone required"
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.verifyResetToken = async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    const tables = ["vendors", "app_data.customers", "delivery_partners"];
+
+    let tableFound = null;
+
+    for (let table of tables) {
+      const result = await pool.query(
+        `SELECT id FROM ${table}
+         WHERE reset_token=$1
+         AND reset_token_expiry > NOW()`,
+        [token]
+      );
+
+      if (result.rowCount > 0) {
+        tableFound = table;
+        break;
+      }
+    }
+
+    if (!tableFound) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    // 🔥 Mark reset_verified = true
+    await pool.query(
+      `UPDATE ${tableFound}
+       SET reset_verified=true
+       WHERE reset_token=$1`,
+      [token]
+    );
+
+    return res.json({
+      message: "Token verified successfully. You can now reset password."
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
