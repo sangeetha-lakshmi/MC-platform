@@ -6,10 +6,11 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 // ========================================
 // Homepage — all nearby shops
-// ========================================+
+// ========================================
 
 router.post(
-  "/nearby-shops",authMiddleware,
+  "/nearby-shops",
+  authMiddleware,
   customerController.getNearbyShops
 );
 
@@ -19,17 +20,19 @@ router.post(
 // ========================================
 
 router.post(
-  "/nearby-shops-by-category",authMiddleware,
+  "/nearby-shops-by-category",
+  authMiddleware,
   customerController.getNearbyShopsByCategory
 );
 
 
 // ========================================
-// Search by shop name
+// 🔍 Search shop by name
 // ========================================
 
 router.get(
-  "/search-shop",authMiddleware,
+  "/search-shop",
+  authMiddleware,
   customerController.searchShop
 );
 
@@ -39,7 +42,8 @@ router.get(
 // ========================================
 
 router.post(
-  "/category-shops",authMiddleware,
+  "/category-shops",
+  authMiddleware,
   customerController.getCategoryShops
 );
 
@@ -49,7 +53,8 @@ router.post(
 // ========================================
 
 router.post(
-  "/food-type-shops",authMiddleware, 
+  "/food-type-shops",
+  authMiddleware,
   customerController.getFoodTypeShops
 );
 
@@ -59,8 +64,20 @@ router.post(
 // ========================================
 
 router.get(
-  "/shop/:shopId/live-products", authMiddleware,
+  "/shop/:shopId/live-products",
+  authMiddleware,
   customerController.getLiveProductsByShop
+);
+
+
+// ========================================
+// 🔥 NEW — Search dish inside particular shop
+// ========================================
+
+router.get(
+  "/shop/:shopId/search-products",
+  authMiddleware,
+  customerController.searchProductsInShop
 );
 
 
@@ -69,16 +86,23 @@ router.get(
 // ========================================
 
 router.get(
-  "/search-products",authMiddleware,
+  "/search-products",
+  authMiddleware,
   customerController.searchLiveProducts
 );
 
 
 /* ================= HOMEPAGE CATEGORIES ================= */
-router.get("/categories", authMiddleware, customerController.getHomepageCategories);
+
+router.get(
+  "/categories",
+  authMiddleware,
+  customerController.getHomepageCategories
+);
 
 
 /* ================= HOMEPAGE SUB-CATEGORIES ================= */
+
 router.get(
   "/subcategories/:category_id",
   authMiddleware,
@@ -87,15 +111,31 @@ router.get(
 
 
 /* ================= ADD TO CART ================= */
-router.post("/add-to-cart",authMiddleware,customerController.addToCart);
-router.get("/cart/:customer_id", authMiddleware, customerController.getCartItems);
-router.post("/place-order", authMiddleware, customerController.placeOrder);
+
+router.post(
+  "/add-to-cart",
+  authMiddleware,
+  customerController.addToCart
+);
+
+router.get(
+  "/cart/:customer_id",
+  authMiddleware,
+  customerController.getCartItems
+);
+
+router.post(
+  "/place-order",
+  authMiddleware,
+  customerController.placeOrder
+);
 
 
-/* ================= 🔥 MY ORDERS (NEW) ================= */
+/* ================= 🔥 MY ORDERS ================= */
+
 router.get(
   "/my-orders",
-  authMiddleware, // 🔐 require login
+  authMiddleware,
   customerController.getMyOrders
 );
 
