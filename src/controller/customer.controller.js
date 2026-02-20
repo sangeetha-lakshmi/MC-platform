@@ -300,32 +300,34 @@ exports.getSubCategories = async (req, res) => {
 
 /* ================= ADD TO CART ================= */
 
+/* ================= ADD TO CART ================= */
 exports.addToCart = async (req, res) => {
   try {
 
     const customerId = req.user.id;   // 🔐 from token
-    const { vendor_id, product_id, quantity } = req.body;
+    const { product_id, quantity } = req.body;
 
-    if (!vendor_id || !product_id) {
+    // ✅ validate
+    if (!product_id) {
       return res.status(400).json({
-        message: "vendor_id and product_id required"
+        message: "product_id is required"
       });
     }
 
-    await customerService.addToCart({
+    // ✅ call service (vendor id backend la detect aagum)
+    const cartItem = await customerService.addToCart({
       customerId,
-      vendorId: vendor_id,
       productId: product_id,
       quantity: quantity || 1
     });
 
     res.status(200).json({
       success: true,
-      message: "Item added to cart"
+      message: "Item added to cart",
+      data: cartItem
     });
 
   } catch (error) {
-
     res.status(400).json({
       message: error.message
     });
@@ -333,21 +335,21 @@ exports.addToCart = async (req, res) => {
 };
 
 
+/* ================= GET CART ITEMS ================= */
 exports.getCartItems = async (req, res) => {
   try {
 
-    const customerId = req.user.id;
+    const customerId = req.user.id;   // 🔐 from token
 
-    const data = await customerService.getCartItems(customerId);
+    const items = await customerService.getCartItems(customerId);
 
     res.status(200).json({
       success: true,
-      count: data.length,
-      data
+      count: items.length,
+      data: items
     });
 
   } catch (error) {
-
     res.status(500).json({
       message: error.message
     });
