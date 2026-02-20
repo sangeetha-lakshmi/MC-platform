@@ -7,10 +7,14 @@ const vendorApproved = require("../middlewares/vendorApproved.middleware");
 const { toggleShopStatus } = require("../controller/vendor.controller");
 
 
+// ================= REGISTER & LOGIN =================
 
-// existing
 router.post("/register", vendorController.registerVendor);
 router.post("/login", vendorController.loginVendor);
+
+
+// ================= TOGGLE SHOP ONLINE/OFFLINE =================
+
 router.patch(
   "/toggle-status",
   authMiddleware,
@@ -18,7 +22,9 @@ router.patch(
   toggleShopStatus
 );
 
-// 🆕 profile routes
+
+// ================= PROFILE ROUTES =================
+
 router.get(
   "/profile",
   authMiddleware,
@@ -32,5 +38,26 @@ router.put(
   vendorApproved,
   vendorController.updateVendorProfile
 );
+
+
+// ================= 🔥 STAGE 3 — INCOMING ORDERS =================
+
+router.get(
+  "/orders",
+  authMiddleware,
+  vendorApproved,
+  vendorController.getIncomingOrders
+);
+
+
+// ================= UPDATE ORDER STATUS =================
+
+router.put(
+  "/update-order-status",
+  authMiddleware,
+  vendorApproved,
+  vendorController.updateOrderStatus
+);
+
 
 module.exports = router;

@@ -4,8 +4,9 @@ const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
 const { sendOTP } = require("../utils/twilio");
 
-/* ✅ Register Vendor */
-/* ✅ Register Vendor */
+
+/* ================= REGISTER VENDOR ================= */
+
 exports.registerVendor = async (req, res) => {
   try {
     const {
@@ -24,20 +25,21 @@ exports.registerVendor = async (req, res) => {
       license_doc
     } = req.body;
 
-   if (
-  !shop_name ||
-  !owner_name ||
-  !email ||
-  !phone ||
-  !password ||
-  !business_type
-) {
-  return res.status(400).json({
-    error:
-      "shop_name, owner_name, email, phone, password, business_type are required"
-  });
-}
+    if (
+      !shop_name ||
+      !owner_name ||
+      !email ||
+      !phone ||
+      !password ||
+      !business_type
+    ) {
+      return res.status(400).json({
+        error:
+          "shop_name, owner_name, email, phone, password, business_type are required"
+      });
+    }
 
+    
 
     // ✅ NEW: check duplicate email (SAFE FIX)
     const existingVendor = await vendorService.findVendorByEmail(email);
@@ -89,9 +91,11 @@ await sendOTP(phone);
 };
 
 
-/* ✅ Vendor Login */
+/* ================= LOGIN VENDOR ================= */
+
 exports.loginVendor = async (req, res) => {
   try {
+
     const { identifier, password } = req.body;
 
     if (!identifier || !password) {
@@ -100,34 +104,39 @@ exports.loginVendor = async (req, res) => {
       });
     }
 
-    const vendor = await vendorService.findVendorByEmailOrPhone(identifier);
-
+    const vendor =
+      await vendorService.findVendorByEmailOrPhone(identifier);
 
     if (!vendor) {
-      return res.status(404).json({ error: "Vendor not found" });
+      return res.status(404).json({
+        error: "Vendor not found"
+      });
     }
 
-   if (vendor.is_approved === "declined") {
-  return res.status(403).json({
-    error: "Your account has been declined by admin"
-  });
-}
+    if (vendor.is_approved === "declined") {
+      return res.status(403).json({
+        error:
+          "Your account has been declined by admin"
+      });
+    }
 
-if (vendor.is_approved === "pending") {
-  return res.status(403).json({
-    error: "Admin approval pending"
-  });
-}
+    if (vendor.is_approved === "pending") {
+      return res.status(403).json({
+        error: "Admin approval pending"
+      });
+    }
 
+    const match =
+      await bcrypt.compare(password, vendor.password_hash);
 
-    const match = await bcrypt.compare(password, vendor.password_hash);
     if (!match) {
-      return res.status(401).json({ error: "Invalid password" });
+      return res.status(401).json({
+        error: "Invalid password"
+      });
     }
 
-    // 🔐 JWT WITHOUT role (frontend-friendly)
     const token = jwt.sign(
-      { id: vendor.id, role: "vendor" },   // 👈 role removed
+      { id: vendor.id, role: "vendor" },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -136,14 +145,20 @@ if (vendor.is_approved === "pending") {
       message: "Vendor login successful",
       token
     });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      error: err.message
+    });
   }
 };
 
-/* ✅ Get Vendor Profile */
+
+/* ================= GET VENDOR PROFILE ================= */
+
 exports.getVendorProfile = async (req, res) => {
   try {
+
     const vendorId = req.user.id;
 
     const result = await pool.query(
@@ -168,22 +183,33 @@ exports.getVendorProfile = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Vendor not found" });
+      return res.status(404).json({
+        message: "Vendor not found"
+      });
     }
 
     res.status(200).json({
       success: true,
       data: result.rows[0]
     });
+
   } catch (error) {
-    console.error("Get Vendor Profile Error:", error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error(
+      "Get Vendor Profile Error:",
+      error.message
+    );
+    res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-/* ✅ Update Vendor Profile */
+
+/* ================= UPDATE VENDOR PROFILE ================= */
+
 exports.updateVendorProfile = async (req, res) => {
   try {
+
     const vendorId = req.user.id;
 
     const {
@@ -230,31 +256,43 @@ exports.updateVendorProfile = async (req, res) => {
       message: "Profile updated successfully",
       data: result.rows[0]
     });
+
   } catch (error) {
-    console.error("Update Vendor Profile Error:", error.message);
-    res.status(500).json({ message: "Server error" });
+    console.error(
+      "Update Vendor Profile Error:",
+      error.message
+    );
+    res.status(500).json({
+      message: "Server error"
+    });
   }
 };
-// controllers/vendor.controller.js
 
+
+/* ================= TOGGLE SHOP ONLINE/OFFLINE ================= */
 
 exports.toggleShopStatus = async (req, res) => {
   try {
+
     const userId = req.user.id;
 
-    // 🔒 Check if this user is a vendor
     const vendorCheck = await pool.query(
-   "SELECT id, is_online FROM vendors WHERE id = $1",
-  [userId]
-);
+      "SELECT id, is_online FROM vendors WHERE id = $1",
+      [userId]
+    );
+
     if (vendorCheck.rowCount === 0) {
-      return res.status(403).json({ message: "Vendor not found" });
+      return res.status(403).json({
+        message: "Vendor not found"
+      });
     }
 
     const { is_online } = req.body;
 
     if (typeof is_online !== "boolean") {
-      return res.status(400).json({ message: "Invalid toggle value" });
+      return res.status(400).json({
+        message: "Invalid toggle value"
+      });
     }
 
     await pool.query(
@@ -268,13 +306,67 @@ exports.toggleShopStatus = async (req, res) => {
         ? "You are back online"
         : "You are now offline. No new orders will come."
     });
+
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error"
+    });
   }
 };
 
-//VENDOR DASHBOARD FETCH API
+
+/* ================= 🔥 STAGE 3 — GET INCOMING ORDERS ================= */
+
+exports.getIncomingOrders = async (req, res) => {
+  try {
+
+    const vendorId = req.user.id;
+
+    const orders =
+      await vendorService.getVendorOrders(vendorId);
+
+    res.status(200).json({
+      success: true,
+      data: orders
+    });
+
+  } catch (error) {
+    console.error("VENDOR ORDERS ERROR 👉", error);
+    res.status(500).json({
+      message: "Unable to fetch vendor orders"
+    });
+  }
+};
 
 
+/* ================= UPDATE ORDER STATUS ================= */
 
+exports.updateOrderStatus = async (req, res) => {
+  try {
+
+    const vendorId = req.user.id;
+    const { order_id, status } = req.body;
+
+    if (!order_id || !status) {
+      return res.status(400).json({
+        message: "order_id and status required"
+      });
+    }
+
+    const updatedOrder =
+      await vendorService.updateOrderStatus(order_id, status, vendorId);
+
+    res.json({
+      success: true,
+      message: "Order status updated",
+      data: updatedOrder
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};

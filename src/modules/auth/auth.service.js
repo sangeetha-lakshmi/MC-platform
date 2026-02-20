@@ -113,6 +113,7 @@ throw new Error("User not found");
 };
 const { hashPassword } = require("../../utils/password.utils");
 
+// Customer Registration
 exports.registerCustomer = async (data) => {
   const {
     name,
@@ -161,8 +162,8 @@ if (existing.rows.length > 0) {
       email ?? null,
       phone ?? null,
       passwordHash,
-      latitude ?? null,
-      longitude ?? null,
+      latitude,
+      longitude,
       address ?? null
     ]
   );
@@ -180,3 +181,4 @@ if (phone) {
   };
 };
 //customer logic pending, will add soon
+// pushing by sangeetha lakshmi

@@ -14,7 +14,7 @@ router.post(
 
 router.get("/template", auth, controller.getProductTemplate);
 router.get("/", auth, controller.getAll);
-router.patch("/:id/live", controller.updateLiveStatus);
+router.patch("/:id/toggle-live", auth, controller.toggleLiveStatus);
 router.get("/:id", auth, controller.getOne);
 router.put("/:id", auth, controller.update);
 router.delete("/:id", auth, controller.remove);
