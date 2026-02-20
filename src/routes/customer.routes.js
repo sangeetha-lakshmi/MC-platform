@@ -87,7 +87,11 @@ router.get(
 
 
 /* ================= ADD TO CART ================= */
-router.post("/add-to-cart",authMiddleware,customerController.addToCart);
+router.post(
+  "/cart/:productId",
+  authMiddleware,
+  customerController.addToCart
+);
 router.get("/cart", authMiddleware, customerController.getCartItems);
 router.post("/place-order", authMiddleware, customerController.placeOrder);
 

@@ -297,49 +297,40 @@ exports.getSubCategories = async (req, res) => {
   }
 };
 
-
-/* ================= ADD TO CART ================= */
-
 /* ================= ADD TO CART ================= */
 exports.addToCart = async (req, res) => {
   try {
 
-    const customerId = req.user.id;   // 🔐 from token
-    const { product_id, quantity } = req.body;
+    const customerId = req.user.id;          // 🔐 token
+    const productId = req.params.productId;  // 📦 from URL
+    const { quantity = 1 } = req.body;
 
-    // ✅ validate
-    if (!product_id) {
-      return res.status(400).json({
-        message: "product_id is required"
-      });
-    }
-
-    // ✅ call service (vendor id backend la detect aagum)
-    const cartItem = await customerService.addToCart({
+    const result = await customerService.addToCart({
       customerId,
-      productId: product_id,
-      quantity: quantity || 1
+      productId,
+      quantity
     });
 
     res.status(200).json({
       success: true,
       message: "Item added to cart",
-      data: cartItem
+      data: result
     });
 
   } catch (error) {
     res.status(400).json({
+      success: false,
       message: error.message
     });
   }
 };
-
 
 /* ================= GET CART ITEMS ================= */
 exports.getCartItems = async (req, res) => {
   try {
 
     const customerId = req.user.id;   // 🔐 from token
+    console.log("TOKEN CUSTOMER ID 👉", req.user.id);
 
     const items = await customerService.getCartItems(customerId);
 

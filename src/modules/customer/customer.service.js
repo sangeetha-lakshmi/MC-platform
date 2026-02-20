@@ -316,7 +316,7 @@ exports.saveCustomerLocation = async ({
     customerId
   ]);
 };
-// Pushed by sowdha 
+// ADD TO CART 
 exports.addToCart = async ({ customerId, productId, quantity }) => {
 
   // 1️⃣ Get vendor from product table
@@ -395,7 +395,8 @@ exports.getCartItems = async (customerId) => {
       ci.vendor_id,
       ci.quantity,
       p.name AS product_name,
-      p.price,
+      p.final_price AS price,
+      (p.final_price * ci.quantity) AS item_total,
       v.shop_name AS vendor_name
     FROM cart_items ci
     JOIN products p ON ci.product_id = p.id
