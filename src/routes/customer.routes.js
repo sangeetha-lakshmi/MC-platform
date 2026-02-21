@@ -3,62 +3,6 @@ const router = express.Router();
 const customerController = require("../controller/customer.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-
-// ========================================
-// Homepage — all nearby shops
-// ========================================
-
-router.post(
-  "/nearby-shops",
-  authMiddleware,
-  customerController.getNearbyShops
-);
-
-
-// ========================================
-// Search shops by category & Subcategory
-// ========================================
-
-router.post(
-  "/nearby-shops-by-category",
-  authMiddleware,
-  customerController.getNearbyShopsByCategory
-);
-
-
-// ========================================
-// 🔍 Search shop by name
-// ========================================
-
-router.get(
-  "/search-shop",
-  authMiddleware,
-  customerController.searchShop
-);
-
-
-// ========================================
-// Search by Category only
-// ========================================
-
-router.post(
-  "/category-shops",
-  authMiddleware,
-  customerController.getCategoryShops
-);
-
-
-// ========================================
-// Search by Food-Type (Veg / Non-Veg)
-// ========================================
-
-router.post(
-  "/food-type-shops",
-  authMiddleware,
-  customerController.getFoodTypeShops
-);
-
-
 // ========================================
 // 🔥 Shop Click → Get Live Products
 // ========================================
