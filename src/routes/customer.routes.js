@@ -111,24 +111,13 @@ router.get(
 
 
 /* ================= ADD TO CART ================= */
-
 router.post(
-  "/add-to-cart",
+  "/cart/:productId",
   authMiddleware,
   customerController.addToCart
 );
-
-router.get(
-  "/cart/:customer_id",
-  authMiddleware,
-  customerController.getCartItems
-);
-
-router.post(
-  "/place-order",
-  authMiddleware,
-  customerController.placeOrder
-);
+router.get("/cart", authMiddleware, customerController.getCartItems);
+router.post("/place-order", authMiddleware, customerController.placeOrder);
 
 
 /* ================= 🔥 MY ORDERS ================= */
@@ -139,5 +128,17 @@ router.get(
   customerController.getMyOrders
 );
 
+
+router.get(
+  "/homepage",
+  authMiddleware,
+  customerController.getHomepageNearbyShops
+);
+
+router.put(
+  "/location",
+  authMiddleware,
+  customerController.updateLocation
+);
 
 module.exports = router;

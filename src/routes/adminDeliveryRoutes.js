@@ -12,11 +12,12 @@ router.delete("/:id", adminController.deleteDelivery);
 
 router.put("/reset-password/:id", adminController.resetPassword);
 
-router.put("/edit-profile-id/:id", adminController.editProfileId);
+router.put("/edit-password/:id", adminController.editDeliveryPassword);
+
 
 router.get("/:id", adminController.getDeliveryById);
 
-router.put("/edit/:id", adminController.editDeliveryProfile);
+
 
 
 

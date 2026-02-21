@@ -1,4 +1,5 @@
 const db = require("../../config/database");
+const { sendOTP } = require("../../utils/twilio");
 
 /* ================= REGISTER DELIVERY PARTNER ================= */
 const register = async (data) => {
@@ -45,26 +46,97 @@ const register = async (data) => {
       throw new Error("Invalid Aadhar format");
   }
 
-  const duplicateCheck = await db.query(
-    `SELECT id FROM delivery_partners 
-     WHERE email = $1 
-        OR phone = $2
-        OR driving_license_number = $3
-        OR aadhar_number = $4
-        OR pan_number = $5`,
-    [
-      email,
-      phone,
-      driving_license_number,
-      aadhar_number || null,
-      pan_number || null
-    ]
+ /* ================= DUPLICATE CHECKS ================= */
+
+// 1️⃣ Email check
+const emailCheck = await db.query(
+  "SELECT id, phone, phone_verified FROM delivery_partners WHERE email = $1",
+  [email]
+);
+
+if (emailCheck.rows.length > 0) {
+
+  const existing = emailCheck.rows[0];
+
+  // If not verified → resend OTP
+  if (!existing.phone_verified) {
+    await sendOTP(existing.phone);
+
+    return {
+      message: "Email already registered but not verified. OTP resent."
+    };
+  }
+
+  throw new Error("Email already registered");
+}
+
+
+// 2️⃣ Phone check
+const phoneCheck = await db.query(
+  "SELECT id, phone_verified, is_approved FROM delivery_partners WHERE phone = $1",
+  [phone]
+);
+
+if (phoneCheck.rows.length > 0) {
+
+  const existing = phoneCheck.rows[0];
+
+  // 🔹 If phone not verified → resend OTP
+  if (!existing.phone_verified) {
+    await sendOTP(phone);
+
+    return {
+      resendOTP: true,
+      message: "Phone already registered but not verified. OTP resent."
+    };
+  }
+
+  // 🔹 If verified but waiting admin approval
+  if (existing.phone_verified && existing.is_approved === "pending") {
+    throw new Error("Admin approval pending");
+  }
+
+  throw new Error("Phone number already registered");
+}
+
+
+// 3️⃣ Driving License check
+const dlCheck = await db.query(
+  "SELECT id FROM delivery_partners WHERE driving_license_number = $1",
+  [driving_license_number]
+);
+
+if (dlCheck.rows.length > 0) {
+  throw new Error("Driving license already registered");
+}
+
+
+// 4️⃣ Aadhar check
+if (aadhar_number) {
+  const aadharCheck = await db.query(
+    "SELECT id FROM delivery_partners WHERE aadhar_number = $1",
+    [aadhar_number]
   );
 
-  if (duplicateCheck.rows.length > 0)
-    throw new Error(
-      "Duplicate record detected (Email / Phone / DL / Aadhar / PAN)"
-    );
+  if (aadharCheck.rows.length > 0) {
+    throw new Error("Aadhar already registered");
+  }
+}
+
+
+// 5️⃣ PAN check
+if (pan_number) {
+  const panCheck = await db.query(
+    "SELECT id FROM delivery_partners WHERE pan_number = $1",
+    [pan_number]
+  );
+
+  if (panCheck.rows.length > 0) {
+    throw new Error("PAN already registered");
+  }
+}
+
+  /* ================= GENERATE UNIQUE PROFILE ID ================= */
 
   let profileId;
   let exists = true;
@@ -83,14 +155,18 @@ const register = async (data) => {
   }
 
   await db.query(
-    `INSERT INTO delivery_partners
-     (name,email,phone,
-      aadhar_number,pan_number,
-      vehicle_type,vehicle_number,
-      driving_license_number,
-      profile_id,
-      is_approved, created_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',NOW())`,
+  `INSERT INTO delivery_partners
+   (name,email,phone,
+    aadhar_number,pan_number,
+    vehicle_type,vehicle_number,
+    driving_license_number,
+    profile_id,
+    phone_verified,
+    is_approved,
+    is_active,
+    created_at)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,'pending',false,NOW())`,
+
     [
       name,
       email,
@@ -103,6 +179,12 @@ const register = async (data) => {
       profileId
     ]
   );
+  // 🔥 SEND OTP AFTER INSERT
+await sendOTP(phone);
+
+return {
+  message: "OTP sent. Please verify your phone."
+};
 };
 
 

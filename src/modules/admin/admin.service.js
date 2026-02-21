@@ -25,8 +25,12 @@ const loginAdmin = async ({ email, password }) => {
 /* ---------------- PENDING VENDORS ---------------- */
 const getPendingVendors = async () => {
   const result = await db.query(
-    "SELECT * FROM vendors WHERE is_approved = 'pending'"
+    `SELECT *
+     FROM vendors
+     WHERE is_approved = 'pending'
+     AND phone_verified = true`
   );
+
   return result.rows;
 };
 
@@ -155,6 +159,8 @@ const getShopProducts = async (vendorId) => {
         final_price,
         stock,
         is_live,
+        preparing_minutes,
+        food_type,
         category,
         preparing_minutes,
         food_type,

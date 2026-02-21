@@ -52,14 +52,37 @@ exports.getNearbyShopsByCategory = async (req, res) => {
 // =====================================================
 
 exports.getNearbyShops = async (req, res) => {
-  const { latitude, longitude } = req.body;
+  try {
 
-  const data = await customerService.getNearbyVendors({
-    customerLat: Number(latitude),
-    customerLng: Number(longitude)
-  });
+    const { latitude, longitude } = req.body;
 
-  res.json(data);
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        message: "latitude and longitude are required"
+      });
+    }
+
+    const data = await customerService.getNearbyVendors({
+      customerLat: Number(latitude),
+      customerLng: Number(longitude)
+    });
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("NEARBY SHOPS ERROR 👉", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Unable to fetch nearby shops",
+      error: error.message
+    });
+  }
 };
 
 
@@ -68,9 +91,27 @@ exports.getNearbyShops = async (req, res) => {
 // =====================================================
 
 exports.searchShop = async (req, res) => {
-  const { name } = req.query;
-  const data = await customerService.searchShopByName(name);
-  res.json(data);
+  try {
+
+    const { name } = req.query;
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Shop name is required"
+      });
+    }
+
+    const data = await customerService.searchShopByName(name);
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 
@@ -80,7 +121,14 @@ exports.searchShop = async (req, res) => {
 
 exports.getCategoryShops = async (req, res) => {
   try {
+
     const { latitude, longitude, category } = req.body;
+
+    if (latitude === undefined || longitude === undefined || !category) {
+      return res.status(400).json({
+        message: "latitude, longitude and category are required"
+      });
+    }
 
     const data = await customerService.getShopsByCategory({
       customerLat: Number(latitude),
@@ -88,7 +136,12 @@ exports.getCategoryShops = async (req, res) => {
       category
     });
 
-    res.json(data);
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -101,7 +154,14 @@ exports.getCategoryShops = async (req, res) => {
 
 exports.getFoodTypeShops = async (req, res) => {
   try {
+
     const { latitude, longitude, foodType } = req.body;
+
+    if (latitude === undefined || longitude === undefined || !foodType) {
+      return res.status(400).json({
+        message: "latitude, longitude and foodType are required"
+      });
+    }
 
     const data = await customerService.getVegNonVegShops({
       customerLat: Number(latitude),
@@ -109,9 +169,39 @@ exports.getFoodTypeShops = async (req, res) => {
       foodType
     });
 
-    res.json(data);
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+/* ================= GET HOMEPAGE CATEGORIES ================= */
+
+exports.getHomepageCategories = async (req, res) => {
+  try {
+
+    const data = await customerService.getCategoriesWithSubCategories();
+
+    res.status(200).json({
+      success: true,
+      count: data.length,
+      data
+    });
+
+  } catch (error) {
+
+    console.error("CATEGORY ERROR 👉", error);
+
+    res.status(500).json({
+      message: "Unable to fetch categories",
+      error: error.message
+    });
   }
 };
 
@@ -122,6 +212,7 @@ exports.getFoodTypeShops = async (req, res) => {
 
 exports.getLiveProductsByShop = async (req, res) => {
   try {
+
     const { shopId } = req.params;
 
     const products =
@@ -130,39 +221,10 @@ exports.getLiveProductsByShop = async (req, res) => {
     res.status(200).json(products);
 
   } catch (error) {
+
     console.error(error);
+
     res.status(500).json({ message: "Server Error" });
-  }
-};
-
-
-// =====================================================
-// 🔥 SEARCH PRODUCTS INSIDE PARTICULAR SHOP
-// =====================================================
-
-exports.searchProductsInShop = async (req, res) => {
-  try {
-
-    const { shopId } = req.params;
-    const { query } = req.query;
-
-    if (!query) {
-      return res.status(400).json({
-        message: "Search query is required"
-      });
-    }
-
-    const products =
-      await productService.searchProductsInShop(shopId, query);
-
-    res.status(200).json(products);
-
-  } catch (error) {
-    console.error("SHOP SEARCH ERROR 👉", error);
-    res.status(500).json({
-      message: "Unable to search products in shop",
-      error: error.message
-    });
   }
 };
 
@@ -188,7 +250,9 @@ exports.searchLiveProducts = async (req, res) => {
     res.status(200).json(products);
 
   } catch (error) {
+
     console.error("SEARCH ERROR 👉", error);
+
     res.status(500).json({
       message: "Unable to search products",
       error: error.message
@@ -197,35 +261,7 @@ exports.searchLiveProducts = async (req, res) => {
 };
 
 
-// =====================================================
-// HOMEPAGE CATEGORIES
-// =====================================================
-
-exports.getHomepageCategories = async (req, res) => {
-  try {
-
-    const data =
-      await customerService.getCategoriesWithSubCategories();
-
-    res.status(200).json({
-      success: true,
-      count: data.length,
-      data
-    });
-
-  } catch (error) {
-    console.error("CATEGORY ERROR 👉", error);
-    res.status(500).json({
-      message: "Unable to fetch categories",
-      error: error.message
-    });
-  }
-};
-
-
-// =====================================================
-// SUBCATEGORIES BY CATEGORY
-// =====================================================
+/* ================= SUBCATEGORIES BY CATEGORY ================= */
 
 exports.getSubCategories = async (req, res) => {
   try {
@@ -256,70 +292,69 @@ exports.getSubCategories = async (req, res) => {
   }
 };
 
-
-// =====================================================
-// ADD TO CART
-// =====================================================
-
+/* ================= ADD TO CART ================= */
 exports.addToCart = async (req, res) => {
   try {
 
-    const customerId = req.user.id;
-    const { vendor_id, product_id, quantity } = req.body;
+    const customerId = req.user.id;          // 🔐 token
+    const productId = req.params.productId;  // 📦 from URL
+    const { quantity = 1 } = req.body;
 
-    if (!vendor_id || !product_id) {
-      return res.status(400).json({
-        message: "vendor_id and product_id required"
-      });
-    }
-
-    await customerService.addToCart({
+    const result = await customerService.addToCart({
       customerId,
-      vendorId: vendor_id,
-      productId: product_id,
-      quantity: quantity || 1
+      productId,
+      quantity
     });
 
     res.status(200).json({
       success: true,
-      message: "Item added to cart"
+      message: "Item added to cart",
+      data: result
     });
 
   } catch (error) {
     res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+/* ================= GET CART ITEMS ================= */
+exports.getCartItems = async (req, res) => {
+  try {
+
+    const customerId = req.user.id;   // 🔐 from token
+    console.log("TOKEN CUSTOMER ID 👉", req.user.id);
+
+    const items = await customerService.getCartItems(customerId);
+
+    res.status(200).json({
+      success: true,
+      count: items.length,
+      data: items
+    });
+
+  } catch (error) {
+    res.status(500).json({
       message: error.message
     });
   }
 };
 
 
-// =====================================================
-// GET CART ITEMS
-// =====================================================
-
-exports.getCartItems = async (req, res) => {
-
-  const customerId = req.user.id;
-
-  const data =
-    await customerService.getCartItems(customerId);
-
-  res.json({
-    success: true,
-    count: data.length,
-    data
-  });
-};
-
-
-// =====================================================
-// PLACE ORDER
-// =====================================================
+/* ================= PLACE ORDER ================= */
 
 exports.placeOrder = async (req, res) => {
   try {
 
     const customerId = req.user.id;
+
+    if (isNaN(customerId)) {
+      return res.status(400).json({
+        message: "Valid customer_id required"
+      });
+    }
 
     const result =
       await customerService.placeOrder({ customerId });
@@ -327,6 +362,7 @@ exports.placeOrder = async (req, res) => {
     res.status(200).json(result);
 
   } catch (error) {
+
     res.status(400).json({
       message: error.message
     });
@@ -334,9 +370,7 @@ exports.placeOrder = async (req, res) => {
 };
 
 
-// =====================================================
-// MY ORDERS
-// =====================================================
+/* ================= MY ORDERS ================= */
 
 exports.getMyOrders = async (req, res) => {
   try {
@@ -356,6 +390,64 @@ exports.getMyOrders = async (req, res) => {
     console.error("MY ORDERS ERROR 👉", error);
     res.status(500).json({
       message: "Unable to fetch orders",
+      error: error.message
+    });
+  }
+};
+exports.getHomepageNearbyShops = async (req, res) => {
+  try {
+
+    const customerId = req.user.id;  // 🔐 from token
+
+    const shops =
+      await customerService.getHomepageNearbyShops(customerId);
+
+    res.json({
+      success: true,
+      count: shops.length,
+      data: shops
+    });
+
+  } catch (error) {
+
+    if (error.message === "Location not set") {
+      return res.status(400).json({
+        message: "Customer location not set"
+      });
+    }
+
+    res.status(500).json({
+      message: "Unable to fetch nearby shops",
+      error: error.message
+    });
+  }
+};
+exports.updateLocation = async (req, res) => {
+  try {
+
+    const customerId = req.user.id;
+    const { latitude, longitude } = req.body;
+
+    if (latitude === undefined || longitude === undefined) {
+      return res.status(400).json({
+        message: "Latitude and longitude are required"
+      });
+    }
+
+    await customerService.saveCustomerLocation({
+      customerId,
+      latitude,
+      longitude
+    });
+
+    res.json({
+      success: true,
+      message: "Location updated successfully"
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Unable to update location",
       error: error.message
     });
   }

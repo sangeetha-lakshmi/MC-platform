@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
+const { sendOTP } = require("../utils/twilio");
 
 
 /* ================= REGISTER VENDOR ================= */
@@ -38,14 +39,27 @@ exports.registerVendor = async (req, res) => {
       });
     }
 
-    const existingVendor =
-      await vendorService.findVendorByEmail(email);
+    
 
-    if (existingVendor) {
-      return res.status(409).json({
-        message: "Email already registered"
-      });
-    }
+    // ✅ NEW: check duplicate email (SAFE FIX)
+    const existingVendor = await vendorService.findVendorByEmail(email);
+   if (existingVendor) {
+
+  // If already verified → block
+  if (existingVendor.phone_verified) {
+    return res.status(409).json({
+      message: "Email already registered"
+    });
+  }
+
+  // If NOT verified → resend OTP
+  await sendOTP(phone);
+
+  return res.status(200).json({
+    message: "Phone number not verified. OTP resent."
+  });
+}
+
 
     const password_hash = await bcrypt.hash(password, 10);
 
@@ -64,12 +78,10 @@ exports.registerVendor = async (req, res) => {
       shop_logo,
       license_doc
     });
-
+await sendOTP(phone);
     res.status(201).json({
-      message:
-        "Vendor registered successfully. Waiting for admin approval"
-    });
-
+  message: "OTP sent. Please verify your phone to activate account."
+});
   } catch (err) {
     console.error("Register Vendor Error:", err);
     res.status(500).json({

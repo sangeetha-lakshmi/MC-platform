@@ -1,29 +1,35 @@
 const deliveryService = require("../modules/delivery/delivery.service");
 const bcrypt = require("bcrypt");
-const pool = require("../config/database");
+const pool = require("../config/database"); // ✅ you forgot this
+const { sendOTP } = require("../utils/twilio");
+
 
 
 /* ================= REGISTER DELIVERY PARTNER ================= */
 const registerDeliveryPartner = async (req, res) => {
   try {
 
-    await deliveryService.register(req.body);
+    const result = await deliveryService.register(req.body);
 
-    res.status(201).json({
-      message:
-        "Delivery partner registered successfully. Await admin approval."
+    if (result?.resendOTP) {
+      return res.status(200).json({
+        message: result.message
+      });
+    }
+
+    return res.status(201).json({
+      message: result.message
     });
 
   } catch (err) {
 
     if (err.code === "23505") {
       return res.status(400).json({
-        message:
-          "Duplicate value detected (Email / Phone / License / Aadhar / PAN)"
+        message: "Duplicate value detected"
       });
     }
 
-    res.status(400).json({
+    return res.status(400).json({
       message: err.message
     });
   }
@@ -57,6 +63,28 @@ const changePassword = async (req, res) => {
     res.status(500).json({
       message: "Server Error"
     });
+  }
+};
+const toggleActiveStatus = async (req, res) => {
+  try {
+    const deliveryId = req.user.id; // from JWT
+
+    const result = await pool.query(
+      `UPDATE delivery_partners
+       SET is_active = NOT is_active
+       WHERE id = $1
+       RETURNING is_active`,
+      [deliveryId]
+    );
+
+    res.json({
+      message: "Status updated successfully",
+      is_active: result.rows[0].is_active
+    });
+
+  } catch (error) {
+    console.error("Toggle Active Error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -157,6 +185,7 @@ const markAsDelivered = async (req, res) => {
 module.exports = {
   registerDeliveryPartner,
   changePassword,
+  toggleActiveStatus,
   getAvailableOrders,
   acceptOrder,
   markAsDelivered   // 🔥 ADDED

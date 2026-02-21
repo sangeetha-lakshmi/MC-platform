@@ -19,7 +19,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://multistore-web-app.onrender.com/"
+      "https://multistoreapps.netlify.app"
     ],
     methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -36,7 +36,7 @@ app.use("/api/shop", orderRoutes);
 
 /* OTHER ROUTES */
 app.use("/api/auth", require("./routes/auth.routes"));
-
+app.use("/api/otp", require("./routes/otp.routes"));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/vendor", vendorRoutes);
@@ -44,8 +44,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/common", commonCategoryRoutes);
 app.use("/api/customer", customerRoutes);
-app.use("/api/admin/delivery_partners", adminDeliveryRoutes);
 app.use("/api/admin/deliveries", adminDeliveryRoutes);
+
 
 /* HEALTH */
 app.get("/", (req, res) => {
