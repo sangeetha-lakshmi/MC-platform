@@ -8,15 +8,22 @@ const initSocket = (server) => {
   });
 
   io.on("connection", (socket) => {
-    console.log("Delivery Connected:", socket.id);
+    console.log("User Connected:", socket.id);
 
+    // 🔥 Delivery joins room
     socket.on("joinDeliveryRoom", (deliveryId) => {
       socket.join(`delivery_${deliveryId}`);
-      console.log("Joined:", `delivery_${deliveryId}`);
+      console.log("Delivery Joined:", `delivery_${deliveryId}`);
+    });
+
+    // 🔥 Customer joins room
+    socket.on("joinCustomerRoom", (customerId) => {
+      socket.join(`customer_${customerId}`);
+      console.log("Customer Joined:", `customer_${customerId}`);
     });
 
     socket.on("disconnect", () => {
-      console.log("Disconnected:", socket.id);
+      console.log("User Disconnected:", socket.id);
     });
   });
 };

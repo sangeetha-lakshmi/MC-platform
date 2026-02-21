@@ -198,6 +198,7 @@ const getAvailableOrders = async () => {
         o.total_amount,
         o.status,
         o.created_at,
+         o.customer_id, 
         v.shop_name,
         v.address
      FROM orders o
@@ -212,6 +213,17 @@ const getAvailableOrders = async () => {
 
 /* ================= ACCEPT ORDER (STAGE 8) ================= */
 const acceptOrder = async (orderId, deliveryPartnerId) => {
+
+  // First check if order still ready
+  const checkOrder = await db.query(
+    `SELECT * FROM orders 
+     WHERE id = $1 AND status = 'mark as ready'`,
+    [orderId]
+  );
+
+  if (checkOrder.rows.length === 0) {
+    throw new Error("Order already accepted or not available");
+  }
 
   const result = await db.query(
     `UPDATE orders
@@ -228,6 +240,27 @@ const acceptOrder = async (orderId, deliveryPartnerId) => {
 
 
 /* ================= STAGE 9 - MARK ORDER COMPLETED ================= */
+/* ================= MARK AS PICKED ================= */
+const markAsPicked = async (orderId, deliveryPartnerId) => {
+
+  const result = await db.query(
+    `UPDATE orders
+     SET status = 'picked',
+         updated_at = NOW()
+     WHERE id = $1
+       AND delivery_partner_id = $2
+       AND status = 'out_for_delivery'
+     RETURNING *`,
+    [orderId, deliveryPartnerId]
+  );
+
+  if (result.rows.length === 0) {
+    throw new Error("Order not ready for pickup");
+  }
+
+  return result.rows[0];
+};
+
 const markAsDelivered = async (orderId, deliveryPartnerId) => {
 
   const result = await db.query(
@@ -236,17 +269,22 @@ const markAsDelivered = async (orderId, deliveryPartnerId) => {
          updated_at = NOW()
      WHERE id = $1
        AND delivery_partner_id = $2
+       AND status = 'picked'
      RETURNING *`,
     [orderId, deliveryPartnerId]
   );
 
+  if (result.rows.length === 0) {
+    throw new Error("Order not ready for completion");
+  }
+
   return result.rows[0];
 };
-
 
 module.exports = {
   register,
   getAvailableOrders,
   acceptOrder,
+  markAsPicked,
   markAsDelivered
 };

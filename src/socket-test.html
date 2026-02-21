@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+
+<h2>WebSocket Test</h2>
+
+<script>
+  const socket = io("http://localhost:5000");
+
+  socket.on("connect", () => {
+    console.log("✅ Connected:", socket.id);
+
+    // 🔥 IMPORTANT: change 1 to your real customer_id
+    socket.emit("joinCustomerRoom", 1);
+  });
+
+  socket.on("orderUpdate", (data) => {
+    console.log("🔥 Received:", data);
+  });
+</script>
+
+</body>
+</html>
