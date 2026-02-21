@@ -70,15 +70,7 @@ router.get(
 );
 
 
-// ========================================
-// 🔥 NEW — Search dish inside particular shop
-// ========================================
 
-router.get(
-  "/shop/:shopId/search-products",
-  authMiddleware,
-  customerController.searchProductsInShop
-);
 
 
 // ========================================

@@ -113,7 +113,10 @@ if (latitude === undefined || longitude === undefined) {
 
 exports.updateCustomerProfile = async (req, res) => {
   try {
-    const { id } = req.params;
+
+    // 🔥 IMPORTANT — ID FROM JWT TOKEN
+    const id = req.user.id;
+
     const { name, phone, address, password } = req.body;
 
     let query;
@@ -146,6 +149,12 @@ exports.updateCustomerProfile = async (req, res) => {
 
     const result = await pool.query(query, values);
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Customer not found"
+      });
+    }
+
     res.json({
       message: "Profile updated successfully",
       user: result.rows[0]
@@ -158,6 +167,7 @@ exports.updateCustomerProfile = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 const crypto = require("crypto");
 
