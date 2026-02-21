@@ -229,36 +229,7 @@ exports.getLiveProductsByShop = async (req, res) => {
 };
 
 
-// =====================================================
-// 🔥 GLOBAL LIVE PRODUCT SEARCH
-// =====================================================
 
-exports.searchLiveProducts = async (req, res) => {
-  try {
-
-    const { query } = req.query;
-
-    if (!query) {
-      return res.status(400).json({
-        message: "Search query is required"
-      });
-    }
-
-    const products =
-      await productService.searchLiveProducts(query);
-
-    res.status(200).json(products);
-
-  } catch (error) {
-
-    console.error("SEARCH ERROR 👉", error);
-
-    res.status(500).json({
-      message: "Unable to search products",
-      error: error.message
-    });
-  }
-};
 
 
 /* ================= SUBCATEGORIES BY CATEGORY ================= */

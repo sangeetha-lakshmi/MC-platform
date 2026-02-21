@@ -71,19 +71,6 @@ router.get(
 
 
 
-
-
-// ========================================
-// 🔥 Global Live Product Search
-// ========================================
-
-router.get(
-  "/search-products",
-  authMiddleware,
-  customerController.searchLiveProducts
-);
-
-
 /* ================= HOMEPAGE CATEGORIES ================= */
 
 router.get(
