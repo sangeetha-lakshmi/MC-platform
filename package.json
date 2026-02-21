@@ -22,7 +22,7 @@
     "nodemailer": "^8.0.1",
     "pg": "^8.18.0",
     "pg-hstore": "^2.3.4",
-    "twilio": "^5.12.1"
+    "twilio": "^5.12.2"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"
