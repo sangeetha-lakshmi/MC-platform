@@ -5,6 +5,8 @@ const db = require("../config/database");
 ================================ */
 const getOrders = async (req, res) => {
   try {
+    const vendorId = req.user.id; // ⭐ Logged-in shop ID
+
     const result = await db.query(`
       SELECT
         o.id,
@@ -13,22 +15,33 @@ const getOrders = async (req, res) => {
         o.total_amount,
         o.status,
         o.created_at,
+
         COALESCE(
           json_agg(
             json_build_object(
+              'item_id', oi.id,
               'name', oi.item_name,
-              'qty', oi.quantity
+              'qty', oi.quantity,
+              'price', oi.price
             )
           ) FILTER (WHERE oi.id IS NOT NULL),
           '[]'
         ) AS items
+
       FROM orders o
       LEFT JOIN order_items oi ON o.id = oi.order_id
+
+      WHERE o.vendor_id = $1   -- ⭐ ONLY MY SHOP ORDERS
+
       GROUP BY o.id
       ORDER BY o.created_at ASC
-    `);
+    `, [vendorId]);
 
-    res.json(result.rows);
+    res.json({
+      success: true,
+      data: result.rows
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
