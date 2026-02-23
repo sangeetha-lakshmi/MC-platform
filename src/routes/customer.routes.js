@@ -8,26 +8,24 @@ const authMiddleware = require("../middlewares/auth.middleware");
 // ========================================
 
 router.get(
-  "/shop/:shopId/live-products", authMiddleware,
+  "/shop/:shopId/live-products",
+  authMiddleware,
   customerController.getLiveProductsByShop
 );
 
 
-// ========================================
-// 🔥 Global Live Product Search
-// ========================================
+
+/* ================= HOMEPAGE CATEGORIES ================= */
 
 router.get(
-  "/search-products",authMiddleware,
-  customerController.searchLiveProducts
+  "/categories",
+  authMiddleware,
+  customerController.getHomepageCategories
 );
 
 
-/* ================= HOMEPAGE CATEGORIES ================= */
-router.get("/categories", authMiddleware, customerController.getHomepageCategories);
-
-
 /* ================= HOMEPAGE SUB-CATEGORIES ================= */
+
 router.get(
   "/subcategories/:category_id",
   authMiddleware,
@@ -45,10 +43,11 @@ router.get("/cart", authMiddleware, customerController.getCartItems);
 router.post("/place-order", authMiddleware, customerController.placeOrder);
 
 
-/* ================= 🔥 MY ORDERS (NEW) ================= */
+/* ================= 🔥 MY ORDERS ================= */
+
 router.get(
   "/my-orders",
-  authMiddleware, // 🔐 require login
+  authMiddleware,
   customerController.getMyOrders
 );
 

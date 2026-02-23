@@ -84,14 +84,31 @@ const findVendorByEmailOrPhone = async (identifier) => {
 /* ================= GET VENDOR INCOMING ORDERS (STAGE 3) ================= */
 const getVendorOrders = async (vendorId) => {
 
-  const result = await db.query(
-    `SELECT *
-     FROM orders
-     WHERE vendor_id = $1
-       AND status IN ('pending','accepted','preparing','ready')
-     ORDER BY created_at DESC`,
-    [vendorId]
-  );
+  const result = await db.query(`
+    SELECT
+      o.*,
+
+      COALESCE(
+        (
+          SELECT json_agg(
+            json_build_object(
+              'item_id', oi.id,
+              'name', oi.item_name,
+              'qty', oi.quantity,
+              'price', oi.price
+            )
+          )
+          FROM order_items oi
+          WHERE oi.order_id = o.id
+        ),
+        '[]'
+      ) AS items
+
+    FROM orders o
+    WHERE o.vendor_id = $1
+      AND o.status IN ('pending','accepted','preparing','ready')
+    ORDER BY o.created_at DESC
+  `, [vendorId]);
 
   return result.rows;
 };

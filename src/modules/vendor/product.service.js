@@ -5,7 +5,7 @@ const db = require("../../config/database");
 // VENDOR SIDE
 // ===============================
 
-// get all products for logged-in vendor (ALL products)
+// get all products for logged-in vendor
 exports.getAllProducts = async (vendorId) => {
   const result = await db.query(
     `SELECT 
@@ -34,7 +34,7 @@ exports.getAllProducts = async (vendorId) => {
 };
 
 
-// 🔥 ADD THIS MISSING FUNCTION
+// get product by ID
 exports.getProductById = async (id) => {
   const { rows } = await db.query(
     `SELECT * FROM products WHERE id = $1`,
@@ -84,7 +84,7 @@ exports.createProduct = async (vendorId, data) => {
 };
 
 
-// update product details
+// update product
 exports.updateProduct = async (id, data) => {
   const { rows } = await db.query(
     `UPDATE products SET
@@ -122,7 +122,7 @@ exports.updateProduct = async (id, data) => {
 };
 
 
-// 🔥 REAL TOGGLE LIVE STATUS
+// toggle live status
 exports.toggleLiveStatus = async (id) => {
   const { rows } = await db.query(
     `UPDATE products
@@ -148,7 +148,7 @@ exports.deleteProduct = async (id) => {
 // CUSTOMER SIDE
 // ===============================
 
-// get only LIVE products by shop (vendor_id)
+// 🔥 get LIVE products by shop
 exports.getLiveProductsByShop = async (vendorId) => {
   const { rows } = await db.query(
     `SELECT 
@@ -175,7 +175,7 @@ exports.getLiveProductsByShop = async (vendorId) => {
 };
 
 
-// search LIVE products globally
+// 🌍 global search (all shops)
 exports.searchLiveProducts = async (searchText) => {
   const { rows } = await db.query(
     `SELECT 
@@ -194,6 +194,34 @@ exports.searchLiveProducts = async (searchText) => {
        AND LOWER(name) LIKE LOWER($1)
      ORDER BY id DESC`,
     [`%${searchText}%`]
+  );
+
+  return rows;
+};
+
+
+// 🔥🔥🔥 NEW — SEARCH PRODUCTS INSIDE PARTICULAR SHOP
+exports.searchProductsInShop = async (shopId, searchText) => {
+  const { rows } = await db.query(
+    `SELECT 
+        id,
+        vendor_id,
+        name,
+        description,
+        image,
+        price,
+        final_price,
+        stock,
+        preparing_minutes,
+        food_type,
+        category,
+        subcategory
+     FROM products
+     WHERE vendor_id = $1
+       AND is_live = true
+       AND LOWER(name) LIKE LOWER($2)
+     ORDER BY id DESC`,
+    [shopId, `%${searchText}%`]
   );
 
   return rows;

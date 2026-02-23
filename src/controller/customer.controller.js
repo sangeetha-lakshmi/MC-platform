@@ -35,7 +35,8 @@ exports.getLiveProductsByShop = async (req, res) => {
 
     const { shopId } = req.params;
 
-    const products = await productService.getLiveProductsByShop(shopId);
+    const products =
+      await productService.getLiveProductsByShop(shopId);
 
     res.status(200).json(products);
 
@@ -48,36 +49,7 @@ exports.getLiveProductsByShop = async (req, res) => {
 };
 
 
-// =====================================================
-// 🔥 GLOBAL LIVE PRODUCT SEARCH
-// =====================================================
 
-exports.searchLiveProducts = async (req, res) => {
-  try {
-
-    const { query } = req.query;
-
-    if (!query) {
-      return res.status(400).json({
-        message: "Search query is required"
-      });
-    }
-
-    const products =
-      await productService.searchLiveProducts(query);
-
-    res.status(200).json(products);
-
-  } catch (error) {
-
-    console.error("SEARCH ERROR 👉", error);
-
-    res.status(500).json({
-      message: "Unable to search products",
-      error: error.message
-    });
-  }
-};
 
 
 /* ================= SUBCATEGORIES BY CATEGORY ================= */
@@ -103,9 +75,7 @@ exports.getSubCategories = async (req, res) => {
     });
 
   } catch (error) {
-
     console.error("SUBCATEGORY ERROR 👉", error);
-
     res.status(500).json({
       message: "Unable to fetch subcategories",
       error: error.message
@@ -160,8 +130,6 @@ exports.getCartItems = async (req, res) => {
 exports.placeOrder = async (req, res) => {
   try {
 
-    console.log("BODY 👉", req.body);
-
     const customerId = req.user.id;
 
     if (isNaN(customerId)) {
@@ -171,9 +139,7 @@ exports.placeOrder = async (req, res) => {
     }
 
     const result =
-      await customerService.placeOrder({
-        customerId
-      });
+      await customerService.placeOrder({ customerId });
 
     res.status(200).json(result);
 
@@ -203,9 +169,7 @@ exports.getMyOrders = async (req, res) => {
     });
 
   } catch (error) {
-
     console.error("MY ORDERS ERROR 👉", error);
-
     res.status(500).json({
       message: "Unable to fetch orders",
       error: error.message

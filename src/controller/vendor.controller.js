@@ -4,7 +4,22 @@ const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
 const { sendOTP } = require("../utils/twilio");
 
-
+function getStatusMessage(status) {
+  switch (status) {
+    case "accepted":
+      return "Shop is preparing your order";
+    case "ready":
+      return "Order is ready for pickup";
+    case "picked_up":
+      return "Out for delivery";
+    case "delivered":
+      return "Delivered successfully";
+    case "cancelled":
+      return "Order has been cancelled";
+    default:
+      return "Processing your order";
+  }
+}
 /* ================= REGISTER VENDOR ================= */
 
 exports.registerVendor = async (req, res) => {
@@ -367,15 +382,64 @@ exports.updateOrderStatus = async (req, res) => {
     const vendorId = req.user.id;
     const { order_id, status } = req.body;
 
+    // ✅ 1️⃣ Basic validation
     if (!order_id || !status) {
       return res.status(400).json({
         message: "order_id and status required"
       });
     }
 
-    const updatedOrder =
-      await vendorService.updateOrderStatus(order_id, status, vendorId);
+    // 🔥 2️⃣ STATUS VALIDATION (ADD HERE)
+    const allowedStatuses = [
+      "accepted",
+      "ready",
+      "picked_up",
+      "delivered",
+      "cancelled"
+    ];
 
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status value"
+      });
+    }
+
+    // ✅ 3️⃣ Now safe to update DB
+    const updatedOrder =
+      await vendorService.updateOrderStatus(
+        order_id,
+        status,
+        vendorId
+      );
+    // ✅ 2️⃣ Get customer ID for realtime update
+    const orderRes = await pool.query(
+      "SELECT customer_id FROM orders WHERE id = $1",
+      [order_id]
+    );
+
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({
+        message: "Order not found"
+      });
+    }
+
+    const customerId = orderRes.rows[0].customer_id;
+
+    // ✅ 3️⃣ Get socket instance
+    const io = req.app.get("io");
+
+    // ✅ 4️⃣ Status-based message
+   const message = getStatusMessage(status);
+
+    // ✅ 5️⃣ Send realtime update to customer
+    io.to(`customer_${customerId}`).emit("orderStatusUpdate", {
+      orderId: order_id,
+      status,
+      message,
+      updatedAt: new Date()
+    });
+
+    // ✅ 6️⃣ API Response
     res.json({
       success: true,
       message: "Order status updated",
@@ -383,6 +447,8 @@ exports.updateOrderStatus = async (req, res) => {
     });
 
   } catch (error) {
+
+    console.error("UPDATE ORDER STATUS ERROR 👉", error);
 
     res.status(500).json({
       message: error.message
