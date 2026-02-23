@@ -1,5 +1,4 @@
 const { Server } = require("socket.io");
-
 let io;
 
 const initSocket = (server) => {
@@ -9,6 +8,11 @@ const initSocket = (server) => {
 
   io.on("connection", (socket) => {
     console.log("User Connected:", socket.id);
+
+  socket.on("joinDeliveryGlobal", () => {
+  socket.join("delivery_global");
+  console.log("Delivery joined global room");
+});
 
     // 🔥 Delivery joins room
     socket.on("joinDeliveryRoom", (deliveryId) => {

@@ -1,5 +1,5 @@
 const db = require("../config/database");
-
+const { getIO } = require("../config/socket");  // add top
 /* ================================
    GET ORDERS – SHOP DASHBOARD
 ================================ */
@@ -81,6 +81,16 @@ const markReady = async (req, res) => {
       `,
       [id]
     );
+
+    const io = getIO();
+
+io.to("delivery_global").emit("newOrderAvailable", {
+  order_id: updatedOrder.id,
+  shop_name: updatedOrder.shop_name,
+  address: updatedOrder.address,
+  latitude: updatedOrder.latitude,
+  longitude: updatedOrder.longitude
+});
 
     if (result.rowCount === 0) {
       return res.status(400).json({

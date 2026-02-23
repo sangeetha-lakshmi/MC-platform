@@ -61,6 +61,7 @@ const toggleActiveStatus = async (req, res) => {
 
 
 /* ================= STAGE 7 - GET AVAILABLE READY ORDERS ================= */
+
 const getAvailableOrders = async (req, res) => {
   try {
 
@@ -73,32 +74,27 @@ const getAvailableOrders = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Unable to fetch available orders"
+      message: error.message
     });
   }
 };
-
 
 /* ================= STAGE 8 - ACCEPT ORDER ================= */
 const acceptOrder = async (req, res) => {
   try {
 
-    const { order_id } = req.body;
-
-    if (!order_id) {
-      return res.status(400).json({
-        message: "order_id is required"
-      });
-    }
-
+    const { orderId } = req.params; // 🔥 from URL
     const deliveryPartnerId = req.user.id;
 
     const updatedOrder =
-      await deliveryService.acceptOrder(order_id, deliveryPartnerId);
+      await deliveryService.acceptOrder(orderId, deliveryPartnerId);
 
-    const io = getIO();
+    
 
     // 🔥 Notify Customer
+ 
+    const io = getIO();
+
     io.to(`customer_${updatedOrder.customer_id}`).emit("orderUpdate", {
       status: "out_for_delivery",
       message: "Delivery partner is on the way to pickup your order"
@@ -111,30 +107,21 @@ const acceptOrder = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       message: error.message
     });
   }
 };
 
-
 /* ================= STAGE 9 - MARK ORDER COMPLETED ================= */
 const markAsPicked = async (req, res) => {
   try {
 
-    const { order_id } = req.body;
-
+    const { orderId } = req.params;
     const deliveryPartnerId = req.user.id;
 
     const updatedOrder =
-      await deliveryService.markAsPicked(order_id, deliveryPartnerId);
-
-    const io = getIO();
-
-    io.to(`customer_${updatedOrder.customer_id}`).emit("orderUpdate", {
-      status: "picked",
-      message: "Delivery partner is on the way to your location"
-    });
+      await deliveryService.markAsPicked(orderId, deliveryPartnerId);
 
     res.json({
       success: true,
@@ -143,28 +130,21 @@ const markAsPicked = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       message: error.message
     });
   }
 };
 
+
 const markAsDelivered = async (req, res) => {
   try {
 
-    const { order_id } = req.body;
-
+    const { orderId } = req.params;
     const deliveryPartnerId = req.user.id;
 
     const updatedOrder =
-      await deliveryService.markAsDelivered(order_id, deliveryPartnerId);
-
-    const io = getIO();
-
-    io.to(`customer_${updatedOrder.customer_id}`).emit("orderUpdate", {
-      status: "completed",
-      message: "Your order has been delivered successfully"
-    });
+      await deliveryService.markAsDelivered(orderId, deliveryPartnerId);
 
     res.json({
       success: true,
@@ -173,11 +153,12 @@ const markAsDelivered = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       message: error.message
     });
   }
 };
+
 const getProfile = async (req, res) => {
   try {
 
@@ -273,3 +254,4 @@ module.exports = {
   getProfile,
   updateProfile
 };
+

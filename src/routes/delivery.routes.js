@@ -5,9 +5,10 @@ const otpController = require("../controller/otp.controller");
 const deliveryController = require("../controller/delivery.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-/* ================= REGISTER ================= */
+/* ================= AUTH ================= */
 
 router.post("/register", deliveryController.registerDeliveryPartner);
+
 
 /* ================= DELIVERY ACTIVE TOGGLE ================= */
 
@@ -32,6 +33,7 @@ router.put(
 );
 
 /* ================= ORDERS ================= */
+/* ================= STAGE 7 - READY ORDERS ================= */
 
 router.get(
   "/available-orders",
@@ -39,8 +41,10 @@ router.get(
   deliveryController.getAvailableOrders
 );
 
+/* ================= STAGE 8 - ACCEPT ORDER ================= */
+
 router.put(
-  "/accept-order",
+  "/orders/:orderId/accept",
   authMiddleware,
   deliveryController.acceptOrder
 );
@@ -52,7 +56,15 @@ router.put(
 );
 
 router.put(
-  "/complete-order",
+  "/orders/:orderId/picked",
+  authMiddleware,
+  deliveryController.markAsPicked
+);
+
+/* ================= STAGE 10 - MARK COMPLETED ================= */
+
+router.put(
+  "/orders/:orderId/complete",
   authMiddleware,
   deliveryController.markAsDelivered
 );
