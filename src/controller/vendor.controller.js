@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
 const vendorService = require("../modules/vendor/vendor.service");
 const { sendOTP } = require("../utils/twilio");
+const { getIO } = require("../config/socket");
+
 
 function getStatusMessage(status) {
   switch (status) {
@@ -380,7 +382,8 @@ exports.updateOrderStatus = async (req, res) => {
   try {
 
     const vendorId = req.user.id;
-    const { order_id, status } = req.body;
+const { id, status } = req.params;
+const order_id = id;   // keep your existing variable usage
 
     // ✅ 1️⃣ Basic validation
     if (!order_id || !status) {
@@ -426,7 +429,7 @@ exports.updateOrderStatus = async (req, res) => {
     const customerId = orderRes.rows[0].customer_id;
 
     // ✅ 3️⃣ Get socket instance
-    const io = req.app.get("io");
+    const io = getIO();
 
     // ✅ 4️⃣ Status-based message
    const message = getStatusMessage(status);

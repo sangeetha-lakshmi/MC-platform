@@ -14,8 +14,12 @@
   socket.on("connect", () => {
     console.log("✅ Connected:", socket.id);
 
-    // ⚠️ MUST MATCH customer_id in DB
-    socket.emit("joinCustomerRoom", 1);
+    const customerId = 65;  // MUST match DB
+
+    // 🔥 FIXED EVENT NAME
+    socket.emit("joinCustomerRoom", customerId);
+
+    console.log("Joined room:", "customer_" + customerId);
   });
 
   socket.on("orderAccepted", (data) => {
@@ -28,6 +32,10 @@
 
   socket.on("orderCompleted", (data) => {
     console.log("🔵 COMPLETED:", data.message);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Disconnected");
   });
 
   socket.on("connect_error", (err) => {

@@ -271,6 +271,7 @@ const acceptOrder = async (orderId, deliveryPartnerId) => {
     `
     SELECT 
       o.id,
+      o.customer_id,
       o.order_code,
       o.total_amount,
       o.status,

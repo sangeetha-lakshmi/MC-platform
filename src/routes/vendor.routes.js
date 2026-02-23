@@ -63,7 +63,7 @@ router.post(
 // ================= UPDATE ORDER STATUS =================
 
 router.put(
-  "/update-order-status",
+  "/orders/:id/:status",
   authMiddleware,
   vendorApproved,
   vendorController.updateOrderStatus
