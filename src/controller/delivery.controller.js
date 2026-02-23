@@ -89,6 +89,7 @@ const toggleActiveStatus = async (req, res) => {
 
 
 /* ================= STAGE 7 - GET AVAILABLE READY ORDERS ================= */
+
 const getAvailableOrders = async (req, res) => {
   try {
 
@@ -101,11 +102,10 @@ const getAvailableOrders = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Unable to fetch available orders"
+      message: error.message
     });
   }
 };
-
 
 /* ================= STAGE 8 - ACCEPT ORDER ================= */
 const acceptOrder = async (req, res) => {

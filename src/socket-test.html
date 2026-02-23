@@ -21,6 +21,12 @@
   socket.on("orderUpdate", (data) => {
     console.log("🔥 Received:", data);
   });
+
+  socket.emit("joinDeliveryGlobal");
+
+socket.on("newOrderAvailable", (data) => {
+  console.log("🔥 New Order Received:", data);
+});
 </script>
 
 </body>
