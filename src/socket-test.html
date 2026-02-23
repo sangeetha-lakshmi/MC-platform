@@ -14,19 +14,26 @@
   socket.on("connect", () => {
     console.log("✅ Connected:", socket.id);
 
-    // 🔥 IMPORTANT: change 1 to your real customer_id
+    // ⚠️ MUST MATCH customer_id in DB
     socket.emit("joinCustomerRoom", 1);
   });
 
-  socket.on("orderUpdate", (data) => {
-    console.log("🔥 Received:", data);
+  socket.on("orderAccepted", (data) => {
+    console.log("🔥 ACCEPT:", data.message);
   });
 
-  socket.emit("joinDeliveryGlobal");
+  socket.on("orderPicked", (data) => {
+    console.log("🟡 PICKED:", data.message);
+  });
 
-socket.on("newOrderAvailable", (data) => {
-  console.log("🔥 New Order Received:", data);
-});
+  socket.on("orderCompleted", (data) => {
+    console.log("🔵 COMPLETED:", data.message);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("❌ Connection Error:", err.message);
+  });
+
 </script>
 
 </body>
