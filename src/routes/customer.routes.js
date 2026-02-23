@@ -3,82 +3,29 @@ const router = express.Router();
 const customerController = require("../controller/customer.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-
-// ========================================
-// Homepage — all nearby shops
-// ========================================+
-
-router.post(
-  "/nearby-shops",authMiddleware,
-  customerController.getNearbyShops
-);
-
-
-// ========================================
-// Search shops by category & Subcategory
-// ========================================
-
-router.post(
-  "/nearby-shops-by-category",authMiddleware,
-  customerController.getNearbyShopsByCategory
-);
-
-
-// ========================================
-// Search by shop name
-// ========================================
-
-router.get(
-  "/search-shop",authMiddleware,
-  customerController.searchShop
-);
-
-
-// ========================================
-// Search by Category only
-// ========================================
-
-router.post(
-  "/category-shops",authMiddleware,
-  customerController.getCategoryShops
-);
-
-
-// ========================================
-// Search by Food-Type (Veg / Non-Veg)
-// ========================================
-
-router.post(
-  "/food-type-shops",authMiddleware, 
-  customerController.getFoodTypeShops
-);
-
-
 // ========================================
 // 🔥 Shop Click → Get Live Products
 // ========================================
 
 router.get(
-  "/shop/:shopId/live-products", authMiddleware,
+  "/shop/:shopId/live-products",
+  authMiddleware,
   customerController.getLiveProductsByShop
 );
 
 
-// ========================================
-// 🔥 Global Live Product Search
-// ========================================
+
+/* ================= HOMEPAGE CATEGORIES ================= */
 
 router.get(
-  "/search-products",authMiddleware,
-  customerController.searchLiveProducts
+  "/categories",
+  authMiddleware,
+  customerController.getHomepageCategories
 );
 
 
-/* ================= HOMEPAGE CATEGORIES ================= */
-router.get("/categories", authMiddleware, customerController.getHomepageCategories);
-
-
 /* ================= HOMEPAGE SUB-CATEGORIES ================= */
+
 router.get(
   "/subcategories/:category_id",
   authMiddleware,
@@ -96,10 +43,11 @@ router.get("/cart", authMiddleware, customerController.getCartItems);
 router.post("/place-order", authMiddleware, customerController.placeOrder);
 
 
-/* ================= 🔥 MY ORDERS (NEW) ================= */
+/* ================= 🔥 MY ORDERS ================= */
+
 router.get(
   "/my-orders",
-  authMiddleware, // 🔐 require login
+  authMiddleware,
   customerController.getMyOrders
 );
 

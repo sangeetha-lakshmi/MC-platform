@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket Test</title>
+</head>
+<body>
+
+<h2>Customer Socket Test</h2>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+const socket = io("http://localhost:5000");
+
+// Replace with real customer ID
+const customerId = 65;
+
+socket.on("connect", () => {
+  console.log("✅ Connected:", socket.id);
+  socket.emit("joinCustomerRoom", customerId);
+});
+
+socket.on("orderStatusUpdate", (data) => {
+  console.log("Realtime update:", data);
+  alert(JSON.stringify(data));
+});
+
+socket.on("connect_error", (err) => {
+  console.error("❌ Connection Error:", err.message);
+});
+</script>
+
+</body>
+</html>

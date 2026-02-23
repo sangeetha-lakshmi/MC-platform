@@ -34,35 +34,7 @@ const registerDeliveryPartner = async (req, res) => {
 };
 
 
-/* ================= CHANGE PASSWORD ================= */
-const changePassword = async (req, res) => {
-  try {
 
-    const { newPassword } = req.body;
-
-    if (!newPassword) {
-      return res.status(400).json({
-        message: "New password required"
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await pool.query(
-      "UPDATE delivery_partners SET password_hash=$1 WHERE id=$2",
-      [hashedPassword, req.params.id]
-    );
-
-    res.json({
-      message: "Password Updated Successfully"
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Server Error"
-    });
-  }
-};
 const toggleActiveStatus = async (req, res) => {
   try {
     const deliveryId = req.user.id; // from JWT
@@ -121,6 +93,10 @@ const acceptOrder = async (req, res) => {
     const updatedOrder =
       await deliveryService.acceptOrder(orderId, deliveryPartnerId);
 
+    
+
+    // 🔥 Notify Customer
+ 
     const io = getIO();
 
     console.log("📢 Sending ACCEPT event to:",
@@ -205,7 +181,6 @@ const markAsDelivered = async (req, res) => {
   }
 };
 
-
 const getProfile = async (req, res) => {
   try {
 
@@ -241,40 +216,58 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-
-    const deliveryId = req.user.id; // 🔥 from JWT
+    const deliveryId = req.user.id;
     const { name, phone, vehicle_type, vehicle_number } = req.body;
 
+    const check = await pool.query(
+      "SELECT phone FROM delivery_partners WHERE id = $1",
+      [deliveryId]
+    );
+
+    const currentPhone = check.rows[0].phone;
+
+    // If phone changed
+    if (phone && phone !== currentPhone) {
+
+      await pool.query(
+        "UPDATE delivery_partners SET pending_phone = $1 WHERE id = $2",
+        [phone, deliveryId]
+      );
+
+      await sendOTP(phone);
+
+      return res.json({
+        message: "OTP sent to new phone number. Please verify."
+      });
+    }
+
+    // Normal update (without touching phone)
     const result = await pool.query(
       `UPDATE delivery_partners
-       SET name = $1,
-           phone = $2,
-           vehicle_type = $3,
-           vehicle_number = $4
-       WHERE id = $5
+       SET name = COALESCE($1, name),
+           vehicle_type = COALESCE($2, vehicle_type),
+           vehicle_number = COALESCE($3, vehicle_number)
+       WHERE id = $4
        RETURNING id, name, email, phone,
                  vehicle_type, vehicle_number,
                  profile_id, is_approved,
                  is_active, created_at`,
-      [name, phone, vehicle_type, vehicle_number, deliveryId]
+      [name, vehicle_type, vehicle_number, deliveryId]
     );
 
     res.json({
-      success: true,
-      message: "Profile Updated Successfully",
+      message: "Profile updated successfully",
       data: result.rows[0]
     });
 
   } catch (error) {
-    res.status(500).json({
-      message: error.message
-    });
+    res.status(500).json({ message: error.message });
   }
 };
 
 module.exports = {
   registerDeliveryPartner,
-  changePassword,
+ 
   toggleActiveStatus,
   getAvailableOrders,
   acceptOrder,
@@ -283,3 +276,4 @@ module.exports = {
   getProfile,
   updateProfile
 };
+

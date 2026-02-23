@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const otpController = require("../controller/otp.controller");
 
 const deliveryController = require("../controller/delivery.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
@@ -7,7 +8,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 /* ================= AUTH ================= */
 
 router.post("/register", deliveryController.registerDeliveryPartner);
-router.put("/change-password/:id", deliveryController.changePassword);
+
 
 /* ================= DELIVERY ACTIVE TOGGLE ================= */
 
@@ -31,6 +32,7 @@ router.put(
   deliveryController.updateProfile
 );
 
+/* ================= ORDERS ================= */
 /* ================= STAGE 7 - READY ORDERS ================= */
 
 router.get(
@@ -46,7 +48,12 @@ router.put(
   authMiddleware,
   deliveryController.acceptOrder
 );
-/* ================= STAGE 9 - MARK PICKED ================= */
+
+router.put(
+  "/picked-order",
+  authMiddleware,
+  deliveryController.markAsPicked
+);
 
 router.put(
   "/orders/:orderId/picked",
@@ -61,5 +68,10 @@ router.put(
   authMiddleware,
   deliveryController.markAsDelivered
 );
-
+// delivery person phone update
+router.post(
+  "/verify-phone-update",
+  authMiddleware,
+  otpController.verifyDeliveryOTP
+);
 module.exports = router;

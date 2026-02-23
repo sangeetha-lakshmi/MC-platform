@@ -5,30 +5,60 @@ const { getIO } = require("../config/socket");  // add top
 ================================ */
 const getOrders = async (req, res) => {
   try {
-    const result = await db.query(`
-      SELECT
-        o.id,
-        o.order_code,
-        o.customer_name,
-        o.total_amount,
-        o.status,
-        o.created_at,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'name', oi.item_name,
-              'qty', oi.quantity
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
-      FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
-      GROUP BY o.id
-      ORDER BY o.created_at ASC
-    `);
+    const vendorId = req.user.id; // ⭐ Logged-in shop ID
 
-    res.json(result.rows);
+    const result = await db.query(`
+  SELECT
+    o.id,
+    o.order_code,
+    o.customer_name,
+    o.total_amount,
+    o.status,
+    o.created_at,
+    o.ready_at,
+    o.updated_at,
+    o.delivery_partner_id,
+    o.customer_id,
+    o.vendor_id,
+
+    COALESCE(
+      json_agg(
+        json_build_object(
+          'item_id', oi.id,
+          'name', oi.item_name,
+          'qty', oi.quantity,
+          'price', oi.price
+        )
+      ) FILTER (WHERE oi.id IS NOT NULL),
+      '[]'
+    ) AS items
+
+  FROM orders o
+  LEFT JOIN order_items oi ON o.id = oi.order_id
+
+  WHERE o.vendor_id = $1
+
+  GROUP BY
+    o.id,
+    o.order_code,
+    o.customer_name,
+    o.total_amount,
+    o.status,
+    o.created_at,
+    o.ready_at,
+    o.updated_at,
+    o.delivery_partner_id,
+    o.customer_id,
+    o.vendor_id
+
+  ORDER BY o.created_at DESC
+`, [vendorId]);
+
+    res.json({
+      success: true,
+      data: result.rows
+    });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

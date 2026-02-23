@@ -29,12 +29,39 @@ exports.verifyCustomerOTP = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    await pool.query(
-      `UPDATE app_data.customers
-       SET phone_verified = true
-       WHERE phone = $1`,
-      [phone]
-    );
+   // Check if this is profile update (pending_phone exists)
+const userCheck = await pool.query(
+  `SELECT id, pending_phone 
+   FROM app_data.customers
+   WHERE pending_phone = $1 OR phone = $1`,
+  [phone]
+);
+
+if (userCheck.rows.length === 0) {
+  return res.status(400).json({ message: "User not found" });
+}
+
+const user = userCheck.rows[0];
+
+if (user.pending_phone === phone) {
+  // 🔥 PROFILE UPDATE CASE
+  await pool.query(
+    `UPDATE app_data.customers
+     SET phone = pending_phone,
+         pending_phone = NULL,
+         phone_verified = true
+     WHERE id = $1`,
+    [user.id]
+  );
+} else {
+  // 🔥 REGISTRATION CASE
+  await pool.query(
+    `UPDATE app_data.customers
+     SET phone_verified = true
+     WHERE phone = $1`,
+    [phone]
+  );
+}
 
     res.json({ message: "Phone verified successfully" });
 
@@ -42,6 +69,7 @@ exports.verifyCustomerOTP = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 exports.verifyVendorOTP = async (req, res) => {
   try {
     const { phone, otp } = req.body;
@@ -52,12 +80,39 @@ exports.verifyVendorOTP = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    await pool.query(
-      `UPDATE vendors
-       SET phone_verified = true
-       WHERE phone = $1`,
+    // 🔎 Check if this phone exists as pending_phone
+    const vendorCheck = await pool.query(
+      `SELECT id, pending_phone 
+       FROM vendors
+       WHERE pending_phone = $1 OR phone = $1`,
       [phone]
     );
+
+    if (vendorCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Vendor not found" });
+    }
+
+    const vendor = vendorCheck.rows[0];
+
+    if (vendor.pending_phone === phone) {
+      // 🔥 PROFILE UPDATE CASE
+      await pool.query(
+        `UPDATE vendors
+         SET phone = pending_phone,
+             pending_phone = NULL,
+             phone_verified = true
+         WHERE id = $1`,
+        [vendor.id]
+      );
+    } else {
+      // 🔥 REGISTRATION CASE
+      await pool.query(
+        `UPDATE vendors
+         SET phone_verified = true
+         WHERE phone = $1`,
+        [phone]
+      );
+    }
 
     res.json({ message: "Phone verified successfully" });
 
@@ -75,12 +130,41 @@ exports.verifyDeliveryOTP = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    await pool.query(
-      `UPDATE delivery_partners
-       SET phone_verified = true
-       WHERE phone = $1`,
+    // Check if phone exists in pending_phone OR phone column
+    const deliveryCheck = await pool.query(
+      `SELECT id, pending_phone
+       FROM delivery_partners
+       WHERE pending_phone = $1 OR phone = $1`,
       [phone]
     );
+
+    if (deliveryCheck.rows.length === 0) {
+      return res.status(404).json({
+        message: "Delivery partner not found"
+      });
+    }
+
+    const delivery = deliveryCheck.rows[0];
+
+    if (delivery.pending_phone === phone) {
+      // 🔥 PROFILE UPDATE CASE
+      await pool.query(
+        `UPDATE delivery_partners
+         SET phone = pending_phone,
+             pending_phone = NULL,
+             phone_verified = true
+         WHERE id = $1`,
+        [delivery.id]
+      );
+    } else {
+      // 🔥 REGISTRATION CASE
+      await pool.query(
+        `UPDATE delivery_partners
+         SET phone_verified = true
+         WHERE phone = $1`,
+        [phone]
+      );
+    }
 
     res.json({ message: "Phone verified successfully" });
 
