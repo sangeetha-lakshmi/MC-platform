@@ -26,7 +26,7 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
   /* ================= DELIVERY PARTNER CHECK ================= */
   const deliveryResult = await pool.query(
-    `SELECT id, password_hash, is_approved, is_active
+    `SELECT id, password_hash, is_approved, is_active,phone_verified
      FROM delivery_partners
      WHERE email = $1 OR phone = $1 OR profile_id = $1`,
     [identifier]

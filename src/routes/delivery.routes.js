@@ -1,218 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../config/database");
+const otpController = require("../controller/otp.controller");
 
 const deliveryController = require("../controller/delivery.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
 
-/* ======================================================
-   DELIVERY REQUEST CREATION (CUSTOMER)
-====================================================== */
+/* ================= REGISTER ================= */
 
-router.post("/request", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.id; // 🔒 secure user from JWT
+router.post("/register", deliveryController.registerDeliveryPartner);
 
-    const {
-      pickup_lat,
-      pickup_lng,
-      pickup_instructions,
-      receiver_name,
-      receiver_phone,
-      drop_lat,
-      drop_lng,
-      drop_address_text,
-      package_type,
-      weight,
-      item_value,
-      is_fragile,
-      payment_method
-    } = req.body;
-
-    const result = await pool.query(
-      `INSERT INTO delivery_requests
-      (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-       drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-      RETURNING *`,
-      [
-        userId,
-        pickup_lat,
-        pickup_lng,
-        pickup_instructions,
-        receiver_name,
-        receiver_phone,
-        drop_lat,
-        drop_lng,
-        drop_address_text,
-        package_type,
-        weight,
-        item_value,
-        is_fragile,
-        payment_method
-      ]
-    );
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    console.error("REQUEST ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ======================================================
-   GET DELIVERY REQUEST
-====================================================== */
-
-router.get("/request/:id", authMiddleware, async (req, res) => {
-  try {
-
-    const {
-      user_id,
-      pickup_lat,
-      pickup_lng,
-      pickup_instructions,
-      receiver_name,
-      receiver_phone,
-      drop_lat,
-      drop_lng,
-      drop_address_text,
-      package_type,
-      weight,
-      item_value,
-      is_fragile,
-      payment_method
-    } = req.body;
-
-    const result = await pool.query(
-      `INSERT INTO delivery_requests
-      (user_id,pickup_lat,pickup_lng,pickup_instructions,receiver_name,receiver_phone,
-       drop_lat,drop_lng,drop_address_text,package_type,weight,item_value,is_fragile,payment_method)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-      RETURNING *`,
-      [
-        user_id,
-        pickup_lat,
-        pickup_lng,
-        pickup_instructions,
-        receiver_name,
-        receiver_phone,
-        drop_lat,
-        drop_lng,
-        drop_address_text,
-        package_type,
-        weight,
-        item_value,
-        is_fragile,
-        payment_method
-      ]
-    );
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-// Get delivery request details
-router.get("/request/:id", async (req, res) => {
-  try {
-
-    const { id } = req.params;
-
-    const result = await pool.query(
-      "SELECT * FROM delivery_requests WHERE request_id = $1",
-      [id]
-    );
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    console.error("GET REQUEST ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ======================================================
-   DRIVER ACCEPT ORDER
-====================================================== */
-
-router.put("/accept/:id", authMiddleware, async (req, res) => {
-  try {
-
-    if (req.user.role !== "delivery_partner") {
-      return res.status(403).json({ message: "Forbidden" });
-    }
-
-    res.status(500).json({ error: "Server error" });
-  } catch (err) {
-    console.error("ACCEPT ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }//added by ai
-});
-
-
-
-// Driver accepts parcel request
-router.put("/accept/:id", async (req, res) => {
-  try {
-
-    const { id } = req.params;
-
-    await pool.query(
-      `UPDATE delivery_requests 
-       SET status = 'DRIVER_ASSIGNED'
-       WHERE request_id = $1`,
-      [id]
-    );
-
-    res.json({ message: "Driver Assigned" });
-
-  } catch (err) {
-    console.error("ACCEPT ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-// Update parcel delivery status
-router.put("/status/:id", async (req, res) => {
-  try {
-
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const allowedStatus = [
-      "PENDING",
-      "DRIVER_ASSIGNED",
-      "PICKED_UP",
-      "DELIVERED",
-      "CANCELLED"
-    ];
-
-    if (!allowedStatus.includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
-
-    await pool.query(
-      "UPDATE delivery_requests SET status = $1 WHERE request_id = $2",
-      [status, id]
-    );
-
-    res.json({ message: "Status Updated" });
-
-  } catch (err) {
-    console.error("STATUS UPDATE ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ======================================================
-   DELIVERY ACTIVE TOGGLE
-====================================================== */
+/* ================= DELIVERY ACTIVE TOGGLE ================= */
 
 router.patch(
   "/toggle-active",
@@ -220,84 +17,27 @@ router.patch(
   deliveryController.toggleActiveStatus
 );
 
+/* ================= PROFILE ================= */
 
-/* ================= DELIVERY PARTNER PROFILE ================= */
+router.get(
+  "/profile",
+  authMiddleware,
+  deliveryController.getProfile
+);
 
-router.get("/profile/:id", async (req, res) => {
-  try {
+router.put(
+  "/profile",
+  authMiddleware,
+  deliveryController.updateProfile
+);
 
-    const { id } = req.params;
-
-    const result = await pool.query(
-      `SELECT id, name, email, phone, vehicle_type, vehicle_number,
-              profile_id, is_approved, is_active, created_at
-       FROM delivery_partners
-       WHERE id = $1`,
-      [deliveryId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Delivery Partner Not Found" });
-    }
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-
-router.put("/profile/:id", async (req, res) => {
-  try {
-
-    const { id } = req.params;
-    const { name, phone, vehicle_type, vehicle_number } = req.body;
-
-    const result = await pool.query(
-      `UPDATE delivery_partners
-       SET name = $1,
-           phone = $2,
-           vehicle_type = $3,
-           vehicle_number = $4
-       WHERE id = $5
-       RETURNING id, name, email, phone, vehicle_type, vehicle_number,
-                 profile_id, is_approved, is_active, created_at`,
-      [name, phone, vehicle_type, vehicle_number, deliveryId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Delivery Partner Not Found" });
-    }
-
-    res.json({
-      message: "Profile Updated Successfully",
-      data: result.rows[0]
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/* ======================================================
-   REGISTER DELIVERY
-====================================================== */
-
-/* ================= AUTH ================= */
-
-router.post("/register", deliveryController.registerDeliveryPartner);
-router.put("/change-password/:id", deliveryController.changePassword);
-
-
-/* ================= 🔥 STAGE 7 - READY ORDERS ================= */
+/* ================= ORDERS ================= */
 
 router.get(
   "/available-orders",
   authMiddleware,
   deliveryController.getAvailableOrders
 );
-/* ================= 🔥 STAGE 8 - ACCEPT ORDER ================= */
 
 router.put(
   "/accept-order",
@@ -305,13 +45,21 @@ router.put(
   deliveryController.acceptOrder
 );
 
-/* ================= 🔥 STAGE 9 - MARK DELIVERED ================= */
+router.put(
+  "/picked-order",
+  authMiddleware,
+  deliveryController.markAsPicked
+);
 
 router.put(
   "/complete-order",
   authMiddleware,
   deliveryController.markAsDelivered
 );
-
-
+// delivery person phone update
+router.post(
+  "/verify-phone-update",
+  authMiddleware,
+  otpController.verifyDeliveryOTP
+);
 module.exports = router;

@@ -207,68 +207,87 @@ exports.getVendorProfile = async (req, res) => {
 
 /* ================= UPDATE VENDOR PROFILE ================= */
 
+/* ================= UPDATE VENDOR PROFILE ================= */
+
 exports.updateVendorProfile = async (req, res) => {
   try {
-
     const vendorId = req.user.id;
+    const { phone, ...otherFields } = req.body;
 
-    const {
-      shop_name,
-      owner_name,
-      phone,
-      address,
-      opening_time,
-      closing_time
-    } = req.body;
-
+    // 1️⃣ Get current phone
     const result = await pool.query(
+      "SELECT phone FROM vendors WHERE id = $1",
+      [vendorId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Vendor not found"
+      });
+    }
+
+    const currentPhone = result.rows[0].phone;
+
+    // 2️⃣ If phone changed → send OTP
+    if (phone && phone !== currentPhone) {
+
+      // Save new phone in pending_phone
+      await pool.query(
+        "UPDATE vendors SET pending_phone = $1 WHERE id = $2",
+        [phone, vendorId]
+      );
+
+      // Send OTP (same function used in registration)
+      await sendOTP(phone);
+
+      return res.json({
+        message: "OTP sent to new phone number. Please verify."
+      });
+    }
+
+    // 3️⃣ If phone not changed → update other fields normally
+
+    await pool.query(
       `UPDATE vendors
-       SET
-         shop_name = $1,
-         owner_name = $2,
-         phone = $3,
-         address = $4,
-         opening_time = $5,
-         closing_time = $6
-       WHERE id = $7
-       RETURNING
-         id,
-         shop_name,
-         owner_name,
-         email,
-         phone,
-         address,
-         opening_time,
-         closing_time`,
+       SET shop_name = COALESCE($1, shop_name),
+           owner_name = COALESCE($2, owner_name),
+           email = COALESCE($3, email),
+           business_type = COALESCE($4, business_type),
+           address = COALESCE($5, address),
+           opening_time = COALESCE($6, opening_time),
+           closing_time = COALESCE($7, closing_time),
+           latitude = COALESCE($8, latitude),
+           longitude = COALESCE($9, longitude),
+           shop_logo = COALESCE($10, shop_logo),
+           license_doc = COALESCE($11, license_doc)
+       WHERE id = $12`,
       [
-        shop_name,
-        owner_name,
-        phone,
-        address,
-        opening_time,
-        closing_time,
+        otherFields.shop_name,
+        otherFields.owner_name,
+        otherFields.email,
+        otherFields.business_type,
+        otherFields.address,
+        otherFields.opening_time,
+        otherFields.closing_time,
+        otherFields.latitude,
+        otherFields.longitude,
+        otherFields.shop_logo,
+        otherFields.license_doc,
         vendorId
       ]
     );
 
-    res.status(200).json({
-      success: true,
-      message: "Profile updated successfully",
-      data: result.rows[0]
+    res.json({
+      message: "Profile updated successfully"
     });
 
-  } catch (error) {
-    console.error(
-      "Update Vendor Profile Error:",
-      error.message
-    );
+  } catch (err) {
+    console.error("Update Vendor Error:", err);
     res.status(500).json({
-      message: "Server error"
+      message: "Profile update failed"
     });
   }
 };
-
-
 /* ================= TOGGLE SHOP ONLINE/OFFLINE ================= */
 
 exports.toggleShopStatus = async (req, res) => {
