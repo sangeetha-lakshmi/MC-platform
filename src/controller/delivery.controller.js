@@ -7,7 +7,6 @@ const { getIO } = require("../config/socket");
 /* ================= REGISTER DELIVERY PARTNER ================= */
 const registerDeliveryPartner = async (req, res) => {
   try {
-
     const result = await deliveryService.register(req.body);
 
     if (result?.resendOTP) {
@@ -65,7 +64,12 @@ const toggleActiveStatus = async (req, res) => {
 const getAvailableOrders = async (req, res) => {
   try {
 
-    const orders = await deliveryService.getAvailableOrders();
+    console.log("Delivery ID from token:", req.user.id);
+
+    const deliveryPartnerId = req.user.id;   // 🔥 ADD THIS
+
+    const orders =
+      await deliveryService.getAvailableOrders(deliveryPartnerId, 2);  // 🔥 PASS ID
 
     res.status(200).json({
       success: true,
@@ -83,7 +87,7 @@ const getAvailableOrders = async (req, res) => {
 const acceptOrder = async (req, res) => {
   try {
 
-    const { orderId } = req.params; // 🔥 from URL
+    const { orderId } = req.params;
     const deliveryPartnerId = req.user.id;
 
     const updatedOrder =
@@ -95,9 +99,14 @@ const acceptOrder = async (req, res) => {
  
     const io = getIO();
 
-    io.to(`customer_${updatedOrder.customer_id}`).emit("orderUpdate", {
-      status: "out_for_delivery",
-      message: "Delivery partner is on the way to pickup your order"
+    console.log("📢 Sending ACCEPT event to:",
+      `customer_${updatedOrder.customer_id}`
+    );
+
+    io.to(`customer_${updatedOrder.customer_id}`).emit("orderAccepted", {
+      message: "🚴 Delivery man is on the way to pick your order",
+      orderId: updatedOrder.id,
+      status: "out_for_delivery"
     });
 
     res.json({
@@ -107,9 +116,7 @@ const acceptOrder = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(400).json({
-      message: error.message
-    });
+    res.status(400).json({ message: error.message });
   }
 };
 
@@ -122,6 +129,14 @@ const markAsPicked = async (req, res) => {
 
     const updatedOrder =
       await deliveryService.markAsPicked(orderId, deliveryPartnerId);
+
+    const io = getIO();
+
+    io.to(`customer_${updatedOrder.customer_id}`).emit("orderPicked", {
+      orderId: updatedOrder.id,
+      status: "picked",
+      message: "Your order has been picked up"
+    });
 
     res.json({
       success: true,
@@ -136,7 +151,6 @@ const markAsPicked = async (req, res) => {
   }
 };
 
-
 const markAsDelivered = async (req, res) => {
   try {
 
@@ -145,6 +159,14 @@ const markAsDelivered = async (req, res) => {
 
     const updatedOrder =
       await deliveryService.markAsDelivered(orderId, deliveryPartnerId);
+
+    const io = getIO();
+
+    io.to(`customer_${updatedOrder.customer_id}`).emit("orderCompleted", {
+      orderId: updatedOrder.id,
+      status: "completed",
+      message: "Order delivered successfully"
+    });
 
     res.json({
       success: true,

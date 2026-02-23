@@ -189,23 +189,54 @@ return {
 
 
 /* ================= GET AVAILABLE READY ORDERS ================= */
-const getAvailableOrders = async () => {
+const getAvailableOrders = async (deliveryPartnerId, radiusKm = 2) => {
 
+  // 1️⃣ Get delivery location
+  const delivery = await db.query(
+    "SELECT latitude, longitude FROM delivery_partners WHERE id = $1",
+    [deliveryPartnerId]
+  );
+
+  if (delivery.rows.length === 0) {
+    throw new Error("Delivery location not found");
+  }
+
+  const { latitude: dLat, longitude: dLng } = delivery.rows[0];
+
+  // 2️⃣ Get all ready orders with shop location
   const result = await db.query(`
     SELECT 
       o.id,
-      o.order_code,
-      o.status,
       v.shop_name,
-      v.address
+      v.address,
+      v.latitude,
+      v.longitude
     FROM orders o
     JOIN vendors v ON v.id = o.vendor_id
     WHERE o.status = 'ready'
-    ORDER BY o.created_at ASC
   `);
 
-  return result.rows;
+  // 3️⃣ Calculate distance and filter
+  const nearbyOrders = result.rows
+    .map(order => {
+
+      const distance = parseFloat(
+        calculateDistance(dLat, dLng, order.latitude, order.longitude)
+      );
+
+      return {
+        id: order.id,
+        shop_name: order.shop_name,
+        address: order.address,
+        distance_km: distance
+      };
+
+    })
+    .filter(order => order.distance_km <= radiusKm);
+
+  return nearbyOrders;
 };
+
 
 //   return result.rows;
 // };
@@ -214,7 +245,7 @@ const getAvailableOrders = async () => {
 /* ================= ACCEPT ORDER (STAGE 8) ================= */
 const acceptOrder = async (orderId, deliveryPartnerId) => {
 
-  // First check if order still ready
+  // 1️⃣ Check if order still ready
   const checkOrder = await db.query(
     `SELECT * FROM orders 
      WHERE id = $1 AND status = 'ready'`,
@@ -225,45 +256,76 @@ const acceptOrder = async (orderId, deliveryPartnerId) => {
     throw new Error("Order already accepted or not available");
   }
 
-  const result = await db.query(
+  // 2️⃣ Update order
+  await db.query(
     `UPDATE orders
      SET status = 'out_for_delivery',
          delivery_partner_id = $1,
          updated_at = NOW()
-     WHERE id = $2
-     RETURNING *`,
+     WHERE id = $2`,
     [deliveryPartnerId, orderId]
   );
 
-  return result.rows[0];
-};
+  // 3️⃣ Get FULL DETAILS 🔥
+  const fullDetails = await db.query(
+    `
+    SELECT 
+      o.id,
+      o.order_code,
+      o.total_amount,
+      o.status,
+
+      c.name AS customer_name,
+      c.phone AS customer_phone,
+      c.address AS customer_address,
+
+      v.shop_name,
+      v.address AS shop_address,
+
+      json_agg(
+        json_build_object(
+          'product_name', p.name,
+          'quantity', oi.quantity,
+          'price', oi.price
+        )
+      ) AS items
+
+    FROM orders o
+    JOIN app_data.customers c ON c.id = o.customer_id
+    JOIN vendors v ON v.id = o.vendor_id
+    JOIN order_items oi ON oi.order_id = o.id
+    JOIN products p ON p.id = oi.product_id
+
+    WHERE o.id = $1
+    GROUP BY o.id, c.id, v.id
+    `,
+    [orderId]
+  );
+
+  return fullDetails.rows[0];
+};;
 
 
 /* ================= STAGE 9 - MARK ORDER COMPLETED ================= */
 /* ================= MARK AS PICKED ================= */
 const markAsPicked = async (orderId, deliveryPartnerId) => {
 
-  const result = await db.query(`
-  SELECT 
-    o.id,
-    o.order_code,
-    o.total_amount,
-    o.status,
-    o.customer_id,
-    v.shop_name,
-    v.address,
-    v.latitude,
-    v.longitude
-  FROM orders o
-  JOIN vendors v ON v.id = o.vendor_id
-  WHERE o.status = 'ready'
-`);
+  const result = await db.query(
+    `UPDATE orders
+     SET status = 'picked',
+         updated_at = NOW()
+     WHERE id = $1
+       AND delivery_partner_id = $2
+       AND status = 'out_for_delivery'
+     RETURNING id`,
+    [orderId, deliveryPartnerId]
+  );
 
   if (result.rows.length === 0) {
     throw new Error("Order not ready for pickup");
   }
 
-  return result.rows[0];
+  
 };
 
 const markAsDelivered = async (orderId, deliveryPartnerId) => {
@@ -275,7 +337,7 @@ const markAsDelivered = async (orderId, deliveryPartnerId) => {
      WHERE id = $1
        AND delivery_partner_id = $2
        AND status = 'picked'
-     RETURNING *`,
+     RETURNING id`,
     [orderId, deliveryPartnerId]
   );
 
@@ -283,7 +345,7 @@ const markAsDelivered = async (orderId, deliveryPartnerId) => {
     throw new Error("Order not ready for completion");
   }
 
-  return result.rows[0];
+ 
 };
 
 module.exports = {
