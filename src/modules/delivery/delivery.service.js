@@ -317,14 +317,15 @@ const markAsPicked = async (orderId, deliveryPartnerId) => {
      WHERE id = $1
        AND delivery_partner_id = $2
        AND status = 'out_for_delivery'
-     RETURNING id`,
+     RETURNING id, customer_id`,
     [orderId, deliveryPartnerId]
   );
-
+  console.log("DB Result:", result.rows);
   if (result.rows.length === 0) {
     throw new Error("Order not ready for pickup");
   }
 
+  return result.rows[0];
   
 };
 
@@ -337,16 +338,18 @@ const markAsDelivered = async (orderId, deliveryPartnerId) => {
      WHERE id = $1
        AND delivery_partner_id = $2
        AND status = 'picked'
-     RETURNING id`,
+     RETURNING id, customer_id`,
     [orderId, deliveryPartnerId]
   );
-
+  console.log("DB Result:", result.rows);
   if (result.rows.length === 0) {
     throw new Error("Order not ready for completion");
   }
 
- 
+  return result.rows[0];
+  
 };
+
 
 module.exports = {
   register,
