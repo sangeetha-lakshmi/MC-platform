@@ -8,34 +8,51 @@ const getOrders = async (req, res) => {
     const vendorId = req.user.id; // ⭐ Logged-in shop ID
 
     const result = await db.query(`
-      SELECT
-        o.id,
-        o.order_code,
-        o.customer_name,
-        o.total_amount,
-        o.status,
-        o.created_at,
+  SELECT
+    o.id,
+    o.order_code,
+    o.customer_name,
+    o.total_amount,
+    o.status,
+    o.created_at,
+    o.ready_at,
+    o.updated_at,
+    o.delivery_partner_id,
+    o.customer_id,
+    o.vendor_id,
 
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'item_id', oi.id,
-              'name', oi.item_name,
-              'qty', oi.quantity,
-              'price', oi.price
-            )
-          ) FILTER (WHERE oi.id IS NOT NULL),
-          '[]'
-        ) AS items
+    COALESCE(
+      json_agg(
+        json_build_object(
+          'item_id', oi.id,
+          'name', oi.item_name,
+          'qty', oi.quantity,
+          'price', oi.price
+        )
+      ) FILTER (WHERE oi.id IS NOT NULL),
+      '[]'
+    ) AS items
 
-      FROM orders o
-      LEFT JOIN order_items oi ON o.id = oi.order_id
+  FROM orders o
+  LEFT JOIN order_items oi ON o.id = oi.order_id
 
-      WHERE o.vendor_id = $1   -- ⭐ ONLY MY SHOP ORDERS
+  WHERE o.vendor_id = $1
 
-      GROUP BY o.id
-      ORDER BY o.created_at ASC
-    `, [vendorId]);
+  GROUP BY
+    o.id,
+    o.order_code,
+    o.customer_name,
+    o.total_amount,
+    o.status,
+    o.created_at,
+    o.ready_at,
+    o.updated_at,
+    o.delivery_partner_id,
+    o.customer_id,
+    o.vendor_id
+
+  ORDER BY o.created_at DESC
+`, [vendorId]);
 
     res.json({
       success: true,
