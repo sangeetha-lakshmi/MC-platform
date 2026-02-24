@@ -15,7 +15,7 @@ exports.getAlldelivery_partners = async (req, res) => {
     let query = `
       SELECT *
       FROM delivery_partners
-      WHERE phone_verified = true
+      WHERE is_approved = 'pending'
     `;
 
     const validStatus = ["approved", "pending", "declined"];

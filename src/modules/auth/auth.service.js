@@ -26,7 +26,7 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
   /* ================= DELIVERY PARTNER CHECK ================= */
   const deliveryResult = await pool.query(
-    `SELECT id, password_hash, is_approved, is_active,phone_verified
+    `SELECT id, password_hash, is_approved, is_active
      FROM delivery_partners
      WHERE email = $1 OR phone = $1 OR profile_id = $1`,
     [identifier]
@@ -50,9 +50,9 @@ exports.login = async ({ email, phone, profile_id, password }) => {
 
     const match = await comparePassword(password, partner.password_hash);
 
-  if (!partner.phone_verified) {
-  throw new Error("Phone not verified");
-}
+//   if (!partner.phone_verified) {
+//   throw new Error("Phone not verified");
+// }
 
 
     if (!match) throw new Error("Invalid password");
@@ -75,9 +75,9 @@ WHERE email = $1 OR phone = $1`,
   if (!match) throw new Error("Invalid password");
 
   // 🔥 Only block if registered using phone AND not verified
-  if (customer.phone && customer.phone_verified === false) {
-    throw new Error("Phone not verified");
-  }
+  // if (customer.phone && customer.phone_verified === false) {
+  //   throw new Error("Phone not verified");
+  // }
 
   return { id: customer.id, role: "customer" };
 }
@@ -95,9 +95,9 @@ WHERE email = $1 OR phone = $1`,
   if (vendorResult.rowCount > 0) {
     const vendor = vendorResult.rows[0];
 
-    if (!vendor.phone_verified) {
-    throw new Error("Phone not verified");
-  }
+  //   if (!vendor.phone_verified) {
+  //   throw new Error("Phone not verified");
+  // }
     if (vendor.is_approved !== "approved") {
       throw new Error("Admin approval pending");
     }
@@ -138,13 +138,13 @@ if (existing.rows.length > 0) {
     const customer = existing.rows[0];
 
     // 🟢 If phone exists but not verified → resend OTP
-    if (phone && customer.phone_verified === false) {
-      await sendOTP(phone);
+    // if (phone && customer.phone_verified === false) {
+    //   await sendOTP(phone);
 
-      return {
-        message: "Phone already registered but not verified. OTP resent."
-      };
-    }
+    //   return {
+    //     message: "Phone already registered but not verified. OTP resent."
+    //   };
+    // }
 
     throw new Error("Customer already registered");
   }
@@ -171,9 +171,9 @@ if (existing.rows.length > 0) {
 if (phone) {
     await sendOTP(phone);
 
-    return {
-      message: "OTP sent. Please verify your phone."
-    };
+    // return {
+    //   message: "OTP sent. Please verify your phone."
+    // };
   }
 
   return {

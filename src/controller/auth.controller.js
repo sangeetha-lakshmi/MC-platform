@@ -375,11 +375,11 @@ exports.resetPassword = async (req, res) => {
         }
       }
 
-      if (!tableFound) {
-        return res.status(400).json({
-          message: "Phone not verified or account not found"
-        });
-      }
+      // if (!tableFound) {
+      //   return res.status(400).json({
+      //     message: "Phone not verified or account not found"
+      //   });
+      // }
 
       const hashedPassword = await hashPassword(password);
 

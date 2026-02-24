@@ -70,11 +70,11 @@ exports.registerVendor = async (req, res) => {
   }
 
   // If NOT verified → resend OTP
-  await sendOTP(phone);
+  // await sendOTP(phone);
 
-  return res.status(200).json({
-    message: "Phone number not verified. OTP resent."
-  });
+  // return res.status(200).json({
+  //   message: "Phone number not verified. OTP resent."
+  // });
 }
 
 
@@ -97,7 +97,7 @@ exports.registerVendor = async (req, res) => {
     });
 await sendOTP(phone);
     res.status(201).json({
-  message: "OTP sent. Please verify your phone to activate account."
+  message: "vendor Registration successful. Please wait for admin approval."
 });
   } catch (err) {
     console.error("Register Vendor Error:", err);
@@ -258,7 +258,7 @@ exports.updateVendorProfile = async (req, res) => {
       await sendOTP(phone);
 
       return res.json({
-        message: "OTP sent to new phone number. Please verify."
+        message: "Vendor registration was successful. please wait for admin approval"
       });
     }
 

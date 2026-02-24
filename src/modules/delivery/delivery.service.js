@@ -50,7 +50,7 @@ const register = async (data) => {
 
 // 1️⃣ Email check
 const emailCheck = await db.query(
-  "SELECT id, phone, phone_verified FROM delivery_partners WHERE email = $1",
+  "SELECT id, phone FROM delivery_partners WHERE email = $1",
   [email]
 );
 
@@ -59,13 +59,13 @@ if (emailCheck.rows.length > 0) {
   const existing = emailCheck.rows[0];
 
   // If not verified → resend OTP
-  if (!existing.phone_verified) {
-    await sendOTP(existing.phone);
+  // if (!existing.phone_verified) {
+  //   await sendOTP(existing.phone);
 
-    return {
-      message: "Email already registered but not verified. OTP resent."
-    };
-  }
+  //   return {
+  //     message: "Email already registered but not verified. OTP resent."
+  //   };
+  // }
 
   throw new Error("Email already registered");
 }
@@ -82,14 +82,14 @@ if (phoneCheck.rows.length > 0) {
   const existing = phoneCheck.rows[0];
 
   // 🔹 If phone not verified → resend OTP
-  if (!existing.phone_verified) {
-    await sendOTP(phone);
+  // if (!existing.phone_verified) {
+  //   await sendOTP(phone);
 
-    return {
-      resendOTP: true,
-      message: "Phone already registered but not verified. OTP resent."
-    };
-  }
+  //   return {
+  //     resendOTP: true,
+  //     message: "Phone already registered but not verified. OTP resent."
+  //   };
+  // }
 
   // 🔹 If verified but waiting admin approval
   if (existing.phone_verified && existing.is_approved === "pending") {
@@ -179,12 +179,16 @@ if (pan_number) {
       profileId
     ]
   );
-  // 🔥 SEND OTP AFTER INSERT
-await sendOTP(phone);
 
-return {
-  message: "OTP sent. Please verify your phone."
+  return {
+  message: "Registration successful. Waiting for admin approval."
 };
+  // 🔥 SEND OTP AFTER INSERT
+// await sendOTP(phone);
+
+// return {
+//   message: "OTP sent. Please verify your phone."
+// };
 };
 
 
