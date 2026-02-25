@@ -188,8 +188,9 @@ exports.forgotPassword = async (req, res) => {
     ];
 
     let tableFound = null;
+    let userId = null;
 
-    /* ================= IDENTIFY USER TABLE ================= */
+    /* ================= IDENTIFY USER ================= */
     for (let table of tables) {
       const result = await pool.query(
         email
@@ -200,6 +201,7 @@ exports.forgotPassword = async (req, res) => {
 
       if (result.rowCount > 0) {
         tableFound = table;
+        userId = result.rows[0].id;
         break;
       }
     }
@@ -208,10 +210,29 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    /* ================= EMAIL FLOW ================= */
+    /* ================= PHONE FLOW (HEADER TOKEN) ================= */
+    if (phone) {
+
+      await sendOTP(phone);
+
+      // 🔐 Create OTP session token (5 mins)
+      const otpSessionToken = jwt.sign(
+        { id: userId },
+        process.env.JWT_SECRET,
+        { expiresIn: "5m" }
+      );
+
+      res.setHeader("x-otp-session", otpSessionToken);
+
+      return res.json({
+        message: "OTP sent successfully"
+      });
+    }
+
+    /* ================= EMAIL FLOW (UNCHANGED) ================= */
     if (email) {
       const token = crypto.randomBytes(32).toString("hex");
-      const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+      const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
       await pool.query(
         `UPDATE ${tableFound}
@@ -238,31 +259,31 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    /* ================= PHONE FLOW ================= */
-    if (phone) {
-      await sendOTP(phone);
-
-      return res.json({
-        message: "OTP sent to registered phone number"
-      });
-    }
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
 
 exports.verifyOTP = async (req, res) => {
-  const { phone, otp } = req.body;
+  const { otp } = req.body;
+  const otpSessionToken = req.headers["x-otp-session"];
 
   try {
-    const response = await verifyTwilioOTP(phone, otp);
 
-    if (response.status !== "approved") {
-      return res.status(400).json({ message: "Invalid OTP" });
+    if (!otpSessionToken) {
+      return res.status(400).json({
+        message: "OTP session token missing"
+      });
     }
+
+    const decoded = jwt.verify(
+      otpSessionToken,
+      process.env.JWT_SECRET
+    );
+
+    const userId = decoded.id;
 
     const tables = [
       "vendors",
@@ -270,49 +291,68 @@ exports.verifyOTP = async (req, res) => {
       "delivery_partners"
     ];
 
-    let updated = false;
+    let phone = null;
 
     for (let table of tables) {
       const result = await pool.query(
-        `UPDATE ${table}
-         SET phone_verified=true
-         WHERE phone=$1
-         RETURNING id`,
-        [phone]
+        `SELECT phone FROM ${table} WHERE id=$1`,
+        [userId]
       );
 
       if (result.rowCount > 0) {
-        updated = true;
+        phone = result.rows[0].phone;
         break;
       }
     }
 
-    if (!updated) {
+    if (!phone) {
       return res.status(404).json({
         message: "Account not found"
       });
     }
+
+    const response = await verifyTwilioOTP(phone, otp);
+
+    if (response.status !== "approved") {
+      return res.status(400).json({
+        message: "Invalid OTP"
+      });
+    }
+
+    // 🔐 Create Reset Token (10 mins)
+    const resetToken = jwt.sign(
+      { id: userId },
+      process.env.JWT_SECRET,
+      { expiresIn: "10m" }
+    );
+
+    res.setHeader("x-reset-token", resetToken);
 
     return res.json({
       message: "OTP verified successfully"
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    return res.status(400).json({
+      message: "Invalid or expired OTP session"
+    });
   }
 };
 
-
 exports.resetPassword = async (req, res) => {
-  const { token, phone, password, confirmPassword } = req.body;
+
+  const { token, password, confirmPassword } = req.body;
+  const resetTokenHeader = req.headers["x-reset-token"];
 
   try {
-    if (!password || !confirmPassword)
-      return res.status(400).json({ message: "Password required" });
 
-    if (password !== confirmPassword)
+    if (!password || !confirmPassword) {
+      return res.status(400).json({ message: "Password required" });
+    }
+
+    if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
+    }
 
     const tables = [
       "vendors",
@@ -322,8 +362,9 @@ exports.resetPassword = async (req, res) => {
 
     let tableFound = null;
 
-    /* ================= EMAIL TOKEN RESET ================= */
+    /* ================= EMAIL TOKEN RESET (BODY TOKEN) ================= */
     if (token) {
+
       for (let table of tables) {
         const result = await pool.query(
           `SELECT id FROM ${table}
@@ -360,13 +401,28 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    /* ================= PHONE OTP RESET ================= */
-    if (phone) {
+    /* ================= PHONE OTP RESET (HEADER TOKEN ONLY) ================= */
+    if (resetTokenHeader) {
+
+      let decoded;
+
+      try {
+        decoded = jwt.verify(
+          resetTokenHeader,
+          process.env.JWT_SECRET
+        );
+      } catch (err) {
+        return res.status(400).json({
+          message: "Invalid or expired reset token"
+        });
+      }
+
+      const userId = decoded.id;
+
       for (let table of tables) {
         const result = await pool.query(
-          `SELECT id FROM ${table}
-           WHERE phone=$1 AND phone_verified=true`,
-          [phone]
+          `SELECT id FROM ${table} WHERE id=$1`,
+          [userId]
         );
 
         if (result.rowCount > 0) {
@@ -375,19 +431,19 @@ exports.resetPassword = async (req, res) => {
         }
       }
 
-      // if (!tableFound) {
-      //   return res.status(400).json({
-      //     message: "Phone not verified or account not found"
-      //   });
-      // }
+      if (!tableFound) {
+        return res.status(404).json({
+          message: "Account not found"
+        });
+      }
 
       const hashedPassword = await hashPassword(password);
 
       await pool.query(
         `UPDATE ${tableFound}
          SET password_hash=$1
-         WHERE phone=$2`,
-        [hashedPassword, phone]
+         WHERE id=$2`,
+        [hashedPassword, userId]
       );
 
       return res.json({
@@ -396,55 +452,11 @@ exports.resetPassword = async (req, res) => {
     }
 
     return res.status(400).json({
-      message: "Token or phone required"
+      message: "Reset token required"
     });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
-
-exports.verifyResetToken = async (req, res) => {
-  const { token } = req.params;
-
-  try {
-    const tables = ["vendors", "app_data.customers", "delivery_partners"];
-
-    let tableFound = null;
-
-    for (let table of tables) {
-      const result = await pool.query(
-        `SELECT id FROM ${table}
-         WHERE reset_token=$1
-         AND reset_token_expiry > NOW()`,
-        [token]
-      );
-
-      if (result.rowCount > 0) {
-        tableFound = table;
-        break;
-      }
-    }
-
-    if (!tableFound) {
-      return res.status(400).json({ message: "Invalid or expired token" });
-    }
-
-    // 🔥 Mark reset_verified = true
-    await pool.query(
-      `UPDATE ${tableFound}
-       SET reset_verified=true
-       WHERE reset_token=$1`,
-      [token]
-    );
-
-    return res.json({
-      message: "Token verified successfully. You can now reset password."
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-//edited for pushing
