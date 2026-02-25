@@ -222,7 +222,7 @@ exports.forgotPassword = async (req, res) => {
         { expiresIn: "5m" }
       );
 
-      res.setHeader("x-otp-session", otpSessionToken);
+      res.header("x-otp-session", otpSessionToken);
 
       return res.json({
         message: "OTP sent successfully"

@@ -23,6 +23,7 @@ app.use(
     ],
     methods: ["GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+     exposedHeaders: ["x-otp-session", "x-reset-token"],
     credentials: true
   })
 );
