@@ -209,16 +209,17 @@ const getAvailableOrders = async (deliveryPartnerId, radiusKm = 2) => {
 
   // 2️⃣ Get all ready orders with shop location
   const result = await db.query(`
-    SELECT 
-      o.id,
-      v.shop_name,
-      v.address,
-      v.latitude,
-      v.longitude
-    FROM orders o
-    JOIN vendors v ON v.id = o.vendor_id
-    WHERE o.status = 'ready'
-  `);
+  SELECT 
+    o.id,
+    v.shop_name,
+    v.address,
+    v.latitude,
+    v.longitude
+  FROM orders o
+  JOIN vendors v ON v.id = o.vendor_id
+  WHERE o.status = 'accepted'
+    AND o.delivery_partner_id IS NULL
+`);
 
   // 3️⃣ Calculate distance and filter
   const nearbyOrders = result.rows
@@ -247,30 +248,33 @@ const getAvailableOrders = async (deliveryPartnerId, radiusKm = 2) => {
 
 
 /* ================= ACCEPT ORDER (STAGE 8) ================= */
+
 const acceptOrder = async (orderId, deliveryPartnerId) => {
 
-  // 1️⃣ Check if order still ready
+  // 1️⃣ Check if order is READY and not already assigned
   const checkOrder = await db.query(
-    `SELECT * FROM orders 
-     WHERE id = $1 AND status = 'ready'`,
+    `SELECT id, customer_id 
+     FROM orders 
+     WHERE id = $1 
+       AND status = 'ready'
+       AND delivery_partner_id IS NULL`,
     [orderId]
   );
 
   if (checkOrder.rows.length === 0) {
-    throw new Error("Order already accepted or not available");
+    throw new Error("Order already taken or not available");
   }
 
-  // 2️⃣ Update order
+  // 2️⃣ ONLY assign delivery partner (NO STATUS CHANGE)
   await db.query(
     `UPDATE orders
-     SET status = 'out_for_delivery',
-         delivery_partner_id = $1,
+     SET delivery_partner_id = $1,
          updated_at = NOW()
      WHERE id = $2`,
     [deliveryPartnerId, orderId]
   );
 
-  // 3️⃣ Get FULL DETAILS 🔥
+  // 3️⃣ Get FULL DETAILS
   const fullDetails = await db.query(
     `
     SELECT 
@@ -308,8 +312,7 @@ const acceptOrder = async (orderId, deliveryPartnerId) => {
   );
 
   return fullDetails.rows[0];
-};;
-
+};
 
 /* ================= STAGE 9 - MARK ORDER COMPLETED ================= */
 /* ================= MARK AS PICKED ================= */
@@ -321,17 +324,16 @@ const markAsPicked = async (orderId, deliveryPartnerId) => {
          updated_at = NOW()
      WHERE id = $1
        AND delivery_partner_id = $2
-       AND status = 'out_for_delivery'
+       AND status = 'ready'
      RETURNING id, customer_id`,
     [orderId, deliveryPartnerId]
   );
-  console.log("DB Result:", result.rows);
+
   if (result.rows.length === 0) {
     throw new Error("Order not ready for pickup");
   }
 
   return result.rows[0];
-  
 };
 
 const markAsDelivered = async (orderId, deliveryPartnerId) => {
@@ -346,13 +348,12 @@ const markAsDelivered = async (orderId, deliveryPartnerId) => {
      RETURNING id, customer_id`,
     [orderId, deliveryPartnerId]
   );
-  console.log("DB Result:", result.rows);
+
   if (result.rows.length === 0) {
     throw new Error("Order not ready for completion");
   }
 
   return result.rows[0];
-  
 };
 
 
