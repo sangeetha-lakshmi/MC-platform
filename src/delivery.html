@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Delivery Socket Test</title>
+</head>
+<body>
+
+<h2>Delivery Socket Test (Console Only)</h2>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+
+const socket = io("http://localhost:5000");
+
+// ⭐ Replace with REAL delivery_partner_id from DB
+const deliveryId = 12;
+
+socket.on("connect", () => {
+  console.log("✅ Delivery Connected:", socket.id);
+
+  socket.emit("joinDeliveryRoom", deliveryId);
+
+  console.log("🏠 Joined delivery room:", "delivery_" + deliveryId);
+});
+
+// 🔥 This is what we are checking
+socket.on("order_ready_for_pickup", (data) => {
+  console.log("📦 ORDER READY FOR PICKUP:", data);
+});
+
+socket.on("connect_error", (err) => {
+  console.error("❌ Connection Error:", err.message);
+});
+
+</script>
+
+</body>
+</html>

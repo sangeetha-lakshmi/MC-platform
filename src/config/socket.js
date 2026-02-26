@@ -1,47 +1,89 @@
 const { Server } = require("socket.io");
+
 let io;
 
 const initSocket = (server) => {
   io = new Server(server, {
-    cors: { origin: "*" }
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST", "PUT", "DELETE"]
+    }
   });
 
   io.on("connection", (socket) => {
-    console.log("User Connected:", socket.id);
+    console.log("🔌 User Connected:", socket.id);
 
-    // Customer room
+    /* =========================
+       👤 CUSTOMER ROOM
+    ========================= */
     socket.on("joinCustomerRoom", (customerId) => {
-      socket.join(`customer_${customerId}`);
-      console.log("Customer Joined:", `customer_${customerId}`);
+      if (!customerId) return;
+
+      const room = `customer_${customerId}`;
+      socket.join(room);
+
+      console.log("👤 Customer Joined:", room);
     });
 
-    // Vendor room
+    /* =========================
+       🏪 VENDOR ROOM
+    ========================= */
     socket.on("joinVendorRoom", (vendorId) => {
-      socket.join(`vendor_${vendorId}`);
-      console.log("Vendor Joined:", `vendor_${vendorId}`);
+      if (!vendorId) return;
+
+      const room = `vendor_${vendorId}`;
+      socket.join(room);
+
+      console.log("🏪 Vendor Joined:", room);
     });
 
-    // Delivery personal room
+    /* =========================
+       🚴 DELIVERY PERSON ROOM
+    ========================= */
     socket.on("joinDeliveryRoom", (deliveryId) => {
-      socket.join(`delivery_${deliveryId}`);
-      console.log("Delivery Joined:", `delivery_${deliveryId}`);
+      if (!deliveryId) return;
+
+      const room = `delivery_${deliveryId}`;
+      socket.join(room);
+
+      // ⭐ Add to available agents pool
+      socket.join("available_agents");
+
+      console.log("🚴 Delivery Joined:", room);
+      console.log("🟢 Added to available_agents");
     });
 
-    // Delivery global room
-    socket.on("joinDeliveryGlobal", () => {
-      socket.join("delivery_global");
-      console.log("Delivery joined global room");
+    /* =========================
+       📴 WHEN AGENT BECOMES BUSY
+    ========================= */
+    socket.on("deliveryBusy", () => {
+      socket.leave("available_agents");
+      console.log("🔴 Delivery removed from available_agents");
     });
 
+    /* =========================
+       🟢 WHEN AGENT BECOMES FREE
+    ========================= */
+    socket.on("deliveryAvailable", () => {
+      socket.join("available_agents");
+      console.log("🟢 Delivery added back to available_agents");
+    });
+
+    /* =========================
+       ❌ DISCONNECT
+    ========================= */
     socket.on("disconnect", () => {
-      console.log("User Disconnected:", socket.id);
+      console.log("❌ User Disconnected:", socket.id);
     });
   });
 };
 
+/* =========================
+   GET SOCKET INSTANCE
+========================= */
 const getIO = () => {
   if (!io) {
-    throw new Error("Socket not initialized");
+    throw new Error("❌ Socket not initialized");
   }
   return io;
 };

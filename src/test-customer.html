@@ -1,33 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Socket Test</title>
+  <title>Customer Socket Test</title>
 </head>
 <body>
 
-<h2>Customer Socket Test</h2>
+<h2>Customer Socket Test (Console Only)</h2>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
+
 const socket = io("http://localhost:5000");
 
-// Replace with real customer ID
+// ⭐ Replace with REAL customer ID from DB
 const customerId = 65;
 
 socket.on("connect", () => {
   console.log("✅ Connected:", socket.id);
+
   socket.emit("joinCustomerRoom", customerId);
+
+  console.log("🏠 Joined room:", "customer_" + customerId);
 });
 
-socket.on("orderStatusUpdate", (data) => {
-  console.log("Realtime update:", data);
-  alert(JSON.stringify(data));
+// ✅ Unified Order Status Listener
+socket.on("order_update", (data) => {
+
+  console.log("📦 Order Update Received:", data);
+
+  switch (data.status) {
+
+    case "preparing":
+      console.log("🍳 Your order is being prepared");
+      break;
+
+    case "assigned":
+      console.log("🚴 Delivery partner assigned");
+      break;
+
+
+    case "picked_up":
+      console.log("🟡 Your order has been picked up");
+      break;
+
+    case "delivering":
+      console.log("🚚 Your order is on the way");
+      break;
+
+    case "completed":
+      console.log("✅ Your order has been delivered");
+      break;
+
+    default:
+      console.log("ℹ Status:", data.status);
+  }
+});
+
+// Optional separate events if you emit them
+socket.on("orderAccepted", (data) => {
+  console.log("🚴 Agent Assigned:", data);
+});
+
+socket.on("orderPicked", (data) => {
+  console.log("🟡 Picked:", data);
+});
+
+socket.on("orderCompleted", (data) => {
+  console.log("✅ Completed:", data);
 });
 
 socket.on("connect_error", (err) => {
   console.error("❌ Connection Error:", err.message);
 });
+
 </script>
 
 </body>
